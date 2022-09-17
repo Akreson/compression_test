@@ -81,7 +81,8 @@ CompressFile(PPMByte& Model, file_data& InputFile, ByteVec& OutBuffer)
 	}
 
 	Model.encodeEndOfStream(Encoder);
-	printf("ctx - %d | bytes -  %ld | mem %d B _ %d KiB _ %d MiB\n", Model.ContextCount, Model.SymbolProcessed, Model.MemUse, Model.MemUse / 1024, Model.MemUse / 1024 / 1024);
+	printf("ctx - %d | mem %d B _ %d KiB _ %d MiB\n",
+		Model.ContextCount, Model.MemUse, Model.MemUse / 1024, Model.MemUse / 1024 / 1024);
 }
 
 void

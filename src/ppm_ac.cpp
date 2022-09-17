@@ -71,10 +71,10 @@ public:
 	PPMByte(u32 MaxOrderContext) : OrderCount(MaxOrderContext), CurrSetOrderCount(0), ContextAllocated(0), MemUse(0), SymbolProcessed(0), ContextCount(0)
 	{
 		StaticContext = new context_model_data;
-		clearToOne(StaticContext);
+		MemSet(reinterpret_cast<u32*>(StaticContext), sizeof(context_model_data) / 4, 1);
 
 		ExclusionData = new context_model_data;
-		clearToOne(ExclusionData);
+		clearExclusion(ExclusionData);
 
 		ContextZero = new context_model;
 		allocContext(ContextZero);
@@ -136,7 +136,7 @@ public:
 
 		updateOrderSeq(Symbol);
 		update(Symbol, LookFromSeqIndex);
-		clearToOne(ExclusionData);
+		clearExclusion(ExclusionData);
 
 		SymbolProcessed++;
 	}
@@ -200,7 +200,7 @@ public:
 
 		updateOrderSeq(ResultSymbol);
 		update(ResultSymbol, LookFromSeqIndex);
-		clearToOne(ExclusionData);
+		clearExclusion(ExclusionData);
 
 		return ResultSymbol;
 	}
@@ -240,7 +240,7 @@ private:
 		u32 CumFreq = 0;
 		for (;; ++SymbolIndex)
 		{
-			u32 ModFreq = Data->Freq[SymbolIndex] * ExclusionData->Freq[SymbolIndex];
+			u32 ModFreq = Data->Freq[SymbolIndex] & ExclusionData->Freq[SymbolIndex];
 			u32 CheckFreq = CumFreq + ModFreq;
 
 			if (CheckFreq > DecodeFreq) break;
@@ -260,7 +260,7 @@ private:
 		u32 Result = 0;
 		for (u32 i = 0; i < FreqArraySize; ++i)
 		{
-			Result += Data->Freq[i] * ExclusionData->Freq[i];
+			Result += Data->Freq[i] & ExclusionData->Freq[i];
 		}
 
 		return Result;
@@ -337,14 +337,14 @@ private:
 		u32 CumFreqLo = 0;
 		for (u32 i = 0; i < Symbol; ++i)
 		{
-			u32 Freq = Data->Freq[i] * ExclusionData->Freq[i];
+			u32 Freq = Data->Freq[i] & ExclusionData->Freq[i];
 			CumFreqLo += Freq;
 		}
 
 		u32 CumFreqHi = 0;
 		for (u32 i = Symbol; i < FreqArraySize; ++i)
 		{
-			CumFreqHi += Data->Freq[i] * ExclusionData->Freq[i];
+			CumFreqHi += Data->Freq[i] & ExclusionData->Freq[i];
 		}
 
 		Result.lo = CumFreqLo;
@@ -439,9 +439,9 @@ private:
 		ContextSeq[UpdateSeqIndex] = Symbol;
 	}
 
-	inline void clearToOne(context_model_data* Data)
+	inline void clearExclusion(context_model_data* Data)
 	{
-		MemSet(reinterpret_cast<u32*>(Data), sizeof(context_model_data) / 4, 1);
+		MemSet(reinterpret_cast<u32*>(Data), sizeof(context_model_data) / 4, MaxUInt32);
 	}
 
 	void updateExclusionData(context_model* Context)
@@ -449,7 +449,7 @@ private:
 		context_model_data* ContextData = Context->Data;
 		for (u32 i = 0; i < EscapeSymbolIndex; ++i)
 		{
-			b32 ToExcl = ContextData->Freq[i] ? 0 : 1;
+			u32 ToExcl = ContextData->Freq[i] ? 0 : MaxUInt32;
 			ExclusionData->Freq[i] = ToExcl;
 		}
 	}
