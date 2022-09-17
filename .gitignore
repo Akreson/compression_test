@@ -1,0 +1,4 @@
+data/
+*.vcxproj
+*.filters
+*.user
