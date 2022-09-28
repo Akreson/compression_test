@@ -94,7 +94,7 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 	for (;;)
 	{
 		u32 DecodedSymbol = Model.decode(Decoder);
-		if (DecodedSymbol == PPMByte::EscapeSymbolIndex) break;
+		if (DecodedSymbol == PPMByte::EscapeSymbol) break;
 
 		Assert(ByteIndex <= OutputFile.Size);
 		Assert(InputFile.Data[ByteIndex] == DecodedSymbol)

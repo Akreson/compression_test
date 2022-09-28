@@ -126,11 +126,12 @@ public:
 			Assert(Success);
 			Encoder.encode(Prob);
 
-			if (!LookFromSeqIndex)
+			Assert(LookFromSeqIndex);
+			/*if (!LookFromSeqIndex)
 			{
 				LookFromSeqIndex++;
 				ContextStack[0] = ContextZero;
-			}
+			}*/
 		}
 
 		updateOrderSeq(Symbol);
@@ -189,12 +190,13 @@ public:
 			if (ResultSymbol != EscapeSymbol)
 			{
 				Decoder.updateDecodeRange(DecodedSymbol.Prob);
+				Assert(LookFromSeqIndex);
 
-				if (!LookFromSeqIndex)
+				/*if (!LookFromSeqIndex)
 				{
 					LookFromSeqIndex++;
 					ContextStack[0] = ContextZero;
-				}
+				}*/
 			}
 		}
 
