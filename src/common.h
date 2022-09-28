@@ -33,6 +33,8 @@ using ByteVec = std::vector<u8>;
 #define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
+static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
+static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
 
 static constexpr u32 CodeBit = 16;
@@ -58,17 +60,8 @@ struct prob
 	u32 count;
 };
 
-inline void
-MemSet(u8* Dest, u64 Size, u8 Value)
-{
-	while (Size--)
-	{
-		*Dest++ = Value;
-	}
-}
-
-inline void
-MemSet(u32* Dest, u64 Size, u32 Value)
+template<typename T> inline void
+MemSet(T* Dest, u64 Size, T Value)
 {
 	while (Size--)
 	{
@@ -79,7 +72,21 @@ MemSet(u32* Dest, u64 Size, u32 Value)
 inline void
 ZeroSize(void* Ptr, u64 Size)
 {
-	MemSet(static_cast<u8*>(Ptr), Size, 0);
+	MemSet<u8>(static_cast<u8*>(Ptr), Size, 0);
+}
+
+#define ZeroStruct(Instance) ZeroSize((void *)&(Instance), sizeof(Instance))
+
+inline void
+Copy(memory_index Size, void* DestBase, void* SourceBase)
+{
+	u8* Source = (u8*)SourceBase;
+	u8* Dest = (u8*)DestBase;
+
+	while (Size--)
+	{
+		*Dest++ = *Source++;
+	}
 }
 
 file_data
