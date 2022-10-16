@@ -1,4 +1,5 @@
-#pragma once
+#if !defined(COMMON_H)
+#define COMMON_H
 
 #include <iostream>
 #include <fstream>
@@ -116,3 +117,5 @@ ReadFile(const char* Name)
 	fclose(f);
 	return Result;
 }
+
+#endif
