@@ -63,8 +63,8 @@ private:
 
 		if (!BitAccumCount)
 		{
-			BitAccumCount = 8;
 			Bytes.push_back(BitBuff);
+			BitAccumCount = 8;
 			BitBuff = 0;
 		}
 	}

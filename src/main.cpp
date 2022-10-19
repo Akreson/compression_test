@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "common.h"
+#include "suballoc.cpp"
 #include "ac.cpp"
 #include "static_ac.cpp"
 #include "ppm_ac.cpp"
@@ -53,6 +54,8 @@ TestStaticModel(file_data& InputFile)
 	CompressFile(Model, InputFile, CompressBuffer);
 	u64 CompressedSize = CompressBuffer.size();
 
+	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
+
 	Model.reset();
 
 	file_data OutputFile;
@@ -81,8 +84,6 @@ CompressFile(PPMByte& Model, file_data& InputFile, ByteVec& OutBuffer)
 	}
 
 	Model.encodeEndOfStream(Encoder);
-	printf("ctx - %d | mem %d B _ %d KiB _ %d MiB\n",
-		Model.ContextCount, Model.MemUse, Model.MemUse / 1024, Model.MemUse / 1024 / 1024);
 }
 
 void
@@ -105,13 +106,13 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 void
 TestPPMModel(file_data& InputFile)
 {
-	PPMByte PPMModel(3);
+	PPMByte PPMModel(3, 256);
 	ByteVec CompressBuffer;
 
 	CompressFile(PPMModel, InputFile, CompressBuffer);
 
 	u64 CompressedSize = CompressBuffer.size();
-	printf("compression ratio %.3f", (double)CompressedSize / (double)InputFile.Size);
+	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
 
 	PPMModel.reset();
 

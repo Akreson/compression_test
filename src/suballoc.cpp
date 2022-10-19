@@ -211,7 +211,7 @@ private:
 		ToInsert->Prev->Next = ToInsert;
 	}
 
-	void removeBlock(mem_block* Block)
+	inline void removeBlock(mem_block* Block)
 	{
 		Assert(Block);
 

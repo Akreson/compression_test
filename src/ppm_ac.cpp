@@ -36,11 +36,11 @@ struct symbol_search_result
 
 class PPMByte
 {
+	StaticSubAlloc SubAlloc;
+
 	context_data_excl* Exclusion;
 	context* StaticContext; // order -1
 	context* ContextZero;
-
-	u32 ContextAllocated;
 
 	u32 OrderCount;
 	u32 CurrSetOrderCount;
@@ -53,11 +53,10 @@ public:
 
 	// For debug
 	u64 ContextCount;
-	u64 SymbolProcessed;
-	u64 MemUse;
 
 	PPMByte() = delete;
-	PPMByte(u32 MaxOrderContext) : OrderCount(MaxOrderContext), CurrSetOrderCount(0), ContextAllocated(0), MemUse(0), SymbolProcessed(0), ContextCount(0)
+	PPMByte(u32 MaxOrderContext, u32 MemLimit) :
+		SubAlloc(MemLimit), OrderCount(MaxOrderContext), CurrSetOrderCount(0), ContextCount(0)
 	{
 		StaticContext = new context;
 		ZeroStruct(*StaticContext);
@@ -137,8 +136,6 @@ public:
 		updateOrderSeq(Symbol);
 		update(Symbol, LookFromSeqIndex);
 		clearExclusion();
-
-		SymbolProcessed++;
 	}
 
 	void encodeEndOfStream(ArithEncoder& Encoder)
@@ -525,14 +522,4 @@ private:
 
 		if (Context->Data) delete[] Context->Data;
 	}
-
-	/*void allocContext(context* Context)
-	{
-		Context->Data = new context_data;
-		Context->Next = new context[256];
-		Context->clear();
-
-		//MemUse += sizeof(context_data) + (sizeof(context) * 256);
-		//ContextCount++;
-	}*/
 };
