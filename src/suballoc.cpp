@@ -164,8 +164,13 @@ public:
 
 		if (!Result)
 		{
-			dealloc(Ptr);
 			Result = alloc(NewSize);
+			if (Result)
+			{
+				Copy(Block->Size, Result, Ptr);
+			}
+
+			dealloc(Ptr);
 		}
 
 		return Result;
