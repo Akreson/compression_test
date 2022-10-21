@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
-
 #include "common.h"
 #include "suballoc.cpp"
 #include "ac.cpp"
@@ -81,6 +79,12 @@ CompressFile(PPMByte& Model, file_data& InputFile, ByteVec& OutBuffer)
 	for (u32 i = 0; i <= InputFile.Size; ++i)
 	{
 		Model.encode(Encoder, InputFile.Data[i]);
+
+		if (!(i & 0xffff))
+		{
+			printf("%d %d %d %d\n", i, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
+			//printf("%d\r", i);
+		}
 	}
 
 	Model.encodeEndOfStream(Encoder);
@@ -100,21 +104,28 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 		Assert(ByteIndex <= OutputFile.Size);
 		Assert(InputFile.Data[ByteIndex] == DecodedSymbol)
 		OutputFile.Data[ByteIndex++] = DecodedSymbol;
+
+		if (!(ByteIndex & 0xffff))
+		{
+			//printf("%d %d %d %d\r", ByteIndex, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
+			printf("%d\r", ByteIndex);
+		}
 	}
 }
 
 void
 TestPPMModel(file_data& InputFile)
 {
-	PPMByte PPMModel(3, 256);
+	u32 MemLimit = 10 << 20;
+	PPMByte PPMModel(3, MemLimit);
 	ByteVec CompressBuffer;
 
 	CompressFile(PPMModel, InputFile, CompressBuffer);
-
 	u64 CompressedSize = CompressBuffer.size();
 	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
 
 	PPMModel.reset();
+#if 1
 
 	file_data OutputFile;
 	OutputFile.Size = InputFile.Size;
@@ -122,7 +133,9 @@ TestPPMModel(file_data& InputFile)
 
 	DecompressFile(PPMModel, OutputFile, CompressBuffer, InputFile);
 
+
 	delete[] OutputFile.Data;
+#endif
 }
 
 int

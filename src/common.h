@@ -1,6 +1,8 @@
 #if !defined(COMMON_H)
 #define COMMON_H
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <iostream>
 #include <fstream>
 #include <cstdio>
@@ -8,6 +10,23 @@
 #include <vector>
 #include <limits>
 #include <stdint.h>
+
+#if _MSC_VER
+#include <intrin.h>
+#else
+#error "Unsuported compiler"
+//#include <x86intrin.h>
+#endif
+
+#define _DEBUG
+#ifdef _DEBUG
+	//#define Assert(Expression) assert(Expression)
+	#define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
+#else
+	#define Assert(Expression)
+#endif
+
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -31,10 +50,7 @@ typedef uintptr_t umm;
 
 using ByteVec = std::vector<u8>;
 
-#define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-
-static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
+static constexpr u32 PtrAlign = sizeof(void*);
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
 
@@ -48,18 +64,63 @@ static constexpr u32 ThreeFourths = OneFourth * 3;
 
 static_assert((CodeBit + FreqBit) <= 32, "not ok");
 
-struct file_data
-{
-	u8* Data;
-	u64 Size;
-};
-
 struct prob
 {
 	u32 lo;
 	u32 hi;
 	u32 count;
 };
+
+inline constexpr u32
+AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)
+{
+	Assert(!(Alignment & (Alignment - 1)));
+
+	u32 Result = Size;
+	u32 AlignMask = Alignment - 1;
+	u32 OffsetFromMask = (Size & AlignMask);
+	u32 AlignOffset = OffsetFromMask ? (Alignment - OffsetFromMask) : 0;
+
+	Result += AlignOffset;
+	return Result;
+}
+
+inline constexpr u32
+NextClosestPowerOf2U32(u32 Value)
+{
+	Value--;
+	Value |= Value >> 1;
+	Value |= Value >> 2;
+	Value |= Value >> 4;
+	Value |= Value >> 8;
+	Value |= Value >> 16;
+	Value++;
+
+	return Value;
+}
+
+struct bit_scan_result
+{
+	u16 Index;
+	u16 Succes;
+};
+
+inline bit_scan_result
+FindMostSignificantSetBit(u32 Source)
+{
+	bit_scan_result Result;
+	Result.Succes = _BitScanReverse((unsigned long*)&Result.Index, Source);
+
+	return Result;
+}
+
+
+inline u32
+CountOfSetBits(u32 Value)
+{
+	u32 Result = __popcnt(Value);
+	return Result;
+}
 
 template<typename T> inline void
 MemSet(T* Dest, u64 Size, T Value)
@@ -89,6 +150,12 @@ Copy(memory_index Size, void* DestBase, void* SourceBase)
 		*Dest++ = *Source++;
 	}
 }
+
+struct file_data
+{
+	u8* Data;
+	u64 Size;
+};
 
 file_data
 ReadFile(const char* Name)
