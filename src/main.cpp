@@ -82,8 +82,8 @@ CompressFile(PPMByte& Model, file_data& InputFile, ByteVec& OutBuffer)
 
 		if (!(i & 0xffff))
 		{
-			printf("%d %d %d %d\n", i, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
-			//printf("%d\r", i);
+			//printf("%d %d %d %d\n", i, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
+			printf("%d\r", i);
 		}
 	}
 
@@ -132,7 +132,6 @@ TestPPMModel(file_data& InputFile)
 	OutputFile.Data = new u8[OutputFile.Size];
 
 	DecompressFile(PPMModel, OutputFile, CompressBuffer, InputFile);
-
 
 	delete[] OutputFile.Data;
 #endif

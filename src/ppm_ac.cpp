@@ -1,6 +1,9 @@
 struct context_data_excl
 {
 	u16 Data[256];
+
+	static constexpr u16 Mask = MaxUInt16;
+	static constexpr u16 ClearMask = 0;
 };
 
 struct context;
@@ -19,7 +22,7 @@ struct context
 	u16 EscapeFreq;
 	u16 SymbolCount;
 
-	static constexpr u32 EscapeSymbol = 256;
+	static constexpr u32 MaxSymbol = 255;
 };
 
 struct decode_symbol_result
@@ -49,7 +52,6 @@ class PPMByte
 	context_data_excl* Exclusion;
 	context* StaticContext; // order -1
 	context* ContextZero;
-
 	context* LastUsed;
 
 	u32* ContextSeq;
@@ -61,7 +63,7 @@ class PPMByte
 
 public:
 	StaticSubAlloc SubAlloc;
-	static constexpr u32 EscapeSymbol = context::EscapeSymbol;
+	static constexpr u32 EscapeSymbol = context::MaxSymbol + 1;
 
 	// For debug
 	u64 ContextCount;
@@ -79,10 +81,20 @@ public:
 	{
 		SeqLookAt = 0;
 		u32 OrderLooksLeft = CurrSetOrderCount + 1;
-		//context* PrevContext = 0;
+		
+		context* Prev = 0;
 		while (OrderLooksLeft)
 		{
-			find_context_result Find = findContext();
+			find_context_result Find = {};
+
+			if (Prev)
+			{
+				Find.Context = Prev;
+			}
+			else
+			{
+				Find = findContext();
+			}
 
 			if (!Find.IsNotComplete)
 			{
@@ -93,9 +105,9 @@ public:
 					break;
 				}
 
+				Prev = Find.Context->Prev;
 				Find.SymbolMiss = true;
 
-				// TODO: move to encode
 				if (Find.Context->TotalFreq)
 				{
 					updateExclusionData(Find.Context);
@@ -121,20 +133,31 @@ public:
 		if (update(Symbol))
 		{
 			updateOrderSeq(Symbol);
-			clearExclusion();
 		}
+
+		clearExclusion();
 	}
 
 	u32 decode(ArithDecoder& Decoder)
 	{
-		SeqLookAt = 0;
-
 		u32 ResultSymbol;
+		
+		SeqLookAt = 0;
 		u32 OrderLooksLeft = CurrSetOrderCount + 1;
-		//context* PrevContext = 0;
+		
+		context* Prev = 0;
 		while (OrderLooksLeft)
 		{
-			find_context_result Find = findContext();
+			find_context_result Find = {};
+
+			if (Prev)
+			{
+				Find.Context = Prev;
+			}
+			else
+			{
+				Find = findContext();
+			}
 
 			if (!Find.IsNotComplete)
 			{
@@ -142,8 +165,6 @@ public:
 				if (Find.Context->TotalFreq)
 				{
 					Success = decodeSymbol(Decoder, Find.Context, &ResultSymbol);
-
-					//TODO: move to decode
 					updateExclusionData(Find.Context);
 				}
 
@@ -152,6 +173,8 @@ public:
 					LastUsed = Find.Context;
 					break;
 				}
+
+				Prev = Find.Context->Prev;
 			}
 
 			ContextStack[SeqLookAt++] = Find;
@@ -176,8 +199,9 @@ public:
 		if (update(ResultSymbol))
 		{
 			updateOrderSeq(ResultSymbol);
-			clearExclusion();
 		}
+
+		clearExclusion();
 
 		return ResultSymbol;
 	}
@@ -217,6 +241,7 @@ private:
 			u32 CheckFreq = CumFreq + ModFreq;
 
 			if (CheckFreq > DecodeFreq) break;
+			//Exclusion->Data[Data->Symbol] = context_data_excl::ClearMask;
 
 			CumFreq += ModFreq;
 		}
@@ -334,6 +359,9 @@ private:
 
 	b32 initContext(context* Context, u32 Symbol)
 	{
+		Assert(Context)
+		ZeroStruct(*Context);
+
 		b32 Result = false;
 
 		Context->Data = SubAlloc.alloc<context_data>(2);
@@ -393,8 +421,9 @@ private:
 				while (SeqAt < To)
 				{
 					context* Next = SubAlloc.alloc<context>(1);
-					ContextCount++;
 					if (!Next) break;
+
+					ContextCount++;
 
 					ContextAt = BuildContextFrom->Next = Next;
 
@@ -408,9 +437,9 @@ private:
 				if (SeqAt != To) break;
 
 				context* EndSeqContext = SubAlloc.alloc<context>(1);
-				ContextCount++;
-
 				if (!EndSeqContext) break;
+
+				ContextCount++;
 
 				ContextAt = BuildContextFrom->Next = EndSeqContext;
 
@@ -428,16 +457,17 @@ private:
 				else
 				{
 					Success = addSymbol(ContextAt, Symbol);
-
-					if (ContextAt->TotalFreq >= FreqMaxValue)
-					{
-						rescale(ContextAt);
-					}
 				}
 				
 				if (!Success) break;
+
+				if (ContextAt->TotalFreq >= FreqMaxValue)
+				{
+					rescale(ContextAt);
+				}
 			}
-			
+
+			ContextAt->Prev = Prev;
 			Prev = ContextAt;
 		}
 
@@ -463,6 +493,7 @@ private:
 			if (Data->Symbol == Symbol) break;
 			
 			u32 Freq = Data->Freq & Exclusion->Data[Data->Symbol];
+			//Exclusion->Data[Data->Symbol] = context_data_excl::ClearMask;
 			Prob.lo += Freq;
 		}
 
@@ -594,7 +625,7 @@ private:
 
 	inline void clearExclusion()
 	{
-		MemSet<u16>(reinterpret_cast<u16*>(Exclusion), sizeof(context_data_excl) / sizeof(Exclusion->Data[0]), MaxUInt16);
+		MemSet<u16>(reinterpret_cast<u16*>(Exclusion), sizeof(context_data_excl) / sizeof(Exclusion->Data[0]), context_data_excl::Mask);
 	}
 
 	void updateExclusionData(context* Context)
@@ -603,8 +634,7 @@ private:
 		for (u32 i = 0; i < Context->SymbolCount; ++i)
 		{
 			context_data* Data = ContextData + i;
-			u32 ToExcl = Data->Freq ? 0 : MaxUInt32;
-			Exclusion->Data[Data->Symbol] = ToExcl;
+			Exclusion->Data[Data->Symbol] = 0;
 		}
 	}
 
@@ -631,7 +661,6 @@ private:
 		clearExclusion();
 
 		ContextZero = SubAlloc.alloc<context>(1);
-		ContextCount++;
 		ZeroStruct(*ContextZero);
 		ContextZero->Prev = StaticContext;
 
@@ -640,5 +669,7 @@ private:
 
 		// max symbol seq + context for that seq
 		ContextStack = SubAlloc.alloc<find_context_result>(OrderCount + 1);
+
+		ContextCount++;
 	}
 };

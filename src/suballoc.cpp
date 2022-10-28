@@ -328,7 +328,7 @@ private:
 	inline u32 alignSizeWithMinAllocForward(u32 Size)
 	{
 		/*
-		u32 q = (u32)(((u64)Size * rcp_freq) >> 32) >> rcp_shift;
+		u32 q = (u32)(((u64)Size * RcpMinUse) >> 32) >> RcpShift;
 		u32 Rem = Size - q*MinUse;
 		*/
 
