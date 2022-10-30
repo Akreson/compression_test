@@ -379,107 +379,6 @@ private:
 		return Result;
 	}
 
-	b32 update(u32 Symbol)
-	{
-		b32 Result = true;
-		context* Prev = LastUsed;
-
-		u32 ProcessStackIndex = SeqLookAt;
-		for (; ProcessStackIndex > 0; --ProcessStackIndex)
-		{
-			find_context_result* Update = ContextStack + (ProcessStackIndex - 1);
-			context* ContextAt = Update->Context;
-
-			if (Update->IsNotComplete)
-			{
-				u32 SeqAt = Update->Order;
-				context_data* BuildContextFrom = 0;
-
-				if (Update->SymbolMiss)
-				{
-					b32 Success = addSymbol(ContextAt, ContextSeq[SeqAt]);
-					if (!Success) break;
-
-					if (ContextAt->TotalFreq >= FreqMaxValue)
-					{
-						rescale(ContextAt);
-					}
-
-					BuildContextFrom = ContextAt->Data + (ContextAt->SymbolCount - 1);
-				}
-				else
-				{
-					BuildContextFrom = ContextAt->Data + Update->ChainMissIndex;
-				}
-
-				SeqAt += 1;
-
-				u32 To = CurrSetOrderCount;
-				while (SeqAt < To)
-				{
-					context* Next = SubAlloc.alloc<context>(1);
-					if (!Next) break;
-
-					ContextCount++;
-
-					ContextAt = BuildContextFrom->Next = Next;
-
-					b32 Success = initContext(ContextAt, ContextSeq[SeqAt]);
-					if (!Success) break;
-
-					BuildContextFrom = ContextAt->Data;
-					SeqAt++;
-				}
-
-				if (SeqAt != To) break;
-
-				context* EndSeqContext = SubAlloc.alloc<context>(1);
-				if (!EndSeqContext) break;
-
-				ContextCount++;
-
-				ContextAt = BuildContextFrom->Next = EndSeqContext;
-
-				b32 Success = initContext(ContextAt, Symbol);
-				if (!Success) break;
-			}
-			else
-			{
-				b32 Success;
-
-				Assert(ContextAt->Data);
-				/*if (!ContextAt->Data)
-				{
-					Success = initContext(ContextAt, Symbol);
-				}
-				else*/
-				{
-					Success = addSymbol(ContextAt, Symbol);
-				}
-				
-				if (!Success) break;
-
-				if (ContextAt->TotalFreq >= FreqMaxValue)
-				{
-					rescale(ContextAt);
-				}
-			}
-
-			ContextAt->Prev = Prev;
-			Prev = ContextAt;
-		}
-
-		if (ProcessStackIndex)
-		{
-			// memory not enough, restart model
-			//printf("ctx: %d\n", ContextCount);
-			reset();
-			Result = false;
-		}
-
-		return Result;
-	}
-
 	b32 getProb(context* Context, prob& Prob, u32 Symbol)
 	{
 		b32 Result = false;
@@ -597,6 +496,100 @@ private:
 
 		return Result;
 	}
+
+	b32 update(u32 Symbol)
+	{
+		b32 Result = true;
+		context* Prev = LastUsed;
+
+		u32 ProcessStackIndex = SeqLookAt;
+		for (; ProcessStackIndex > 0; --ProcessStackIndex)
+		{
+			find_context_result* Update = ContextStack + (ProcessStackIndex - 1);
+			context* ContextAt = Update->Context;
+
+			if (Update->IsNotComplete)
+			{
+				u32 SeqAt = Update->Order;
+				context_data* BuildContextFrom = 0;
+
+				if (Update->SymbolMiss)
+				{
+					b32 Success = addSymbol(ContextAt, ContextSeq[SeqAt]);
+					if (!Success) break;
+
+					if (ContextAt->TotalFreq >= FreqMaxValue)
+					{
+						rescale(ContextAt);
+					}
+
+					BuildContextFrom = ContextAt->Data + (ContextAt->SymbolCount - 1);
+				}
+				else
+				{
+					BuildContextFrom = ContextAt->Data + Update->ChainMissIndex;
+				}
+
+				SeqAt += 1;
+
+				u32 To = CurrSetOrderCount;
+				while (SeqAt < To)
+				{
+					context* Next = SubAlloc.alloc<context>(1);
+					if (!Next) break;
+
+					ContextCount++;
+
+					ContextAt = BuildContextFrom->Next = Next;
+
+					b32 Success = initContext(ContextAt, ContextSeq[SeqAt]);
+					if (!Success) break;
+
+					BuildContextFrom = ContextAt->Data;
+					SeqAt++;
+				}
+
+				if (SeqAt != To) break;
+
+				context* EndSeqContext = SubAlloc.alloc<context>(1);
+				ContextCount++;
+
+				if (!EndSeqContext) break;
+
+				ContextAt = BuildContextFrom->Next = EndSeqContext;
+
+				b32 Success = initContext(ContextAt, Symbol);
+				if (!Success) break;
+			}
+			else
+			{
+				b32 Success;
+
+				Assert(ContextAt->Data);
+				Success = addSymbol(ContextAt, Symbol);
+
+				if (ContextAt->TotalFreq >= FreqMaxValue)
+				{
+					rescale(ContextAt);
+				}
+
+				if (!Success) break;
+			}
+
+			Prev = ContextAt;
+		}
+
+		if (ProcessStackIndex)
+		{
+			// memory not enough, restart model
+			//printf("ctx: %d\n", ContextCount);
+			reset();
+			Result = false;
+		}
+
+		return Result;
+	}
+
 
 	inline void updateOrderSeq(u32 Symbol)
 	{
