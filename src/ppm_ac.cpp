@@ -108,10 +108,8 @@ public:
 				Prev = Find.Context->Prev;
 				Find.SymbolMiss = true;
 
-				if (Find.Context->TotalFreq)
-				{
-					updateExclusionData(Find.Context);
-				}
+				Assert (Find.Context->TotalFreq)
+				updateExclusionData(Find.Context);
 			}
 
 			ContextStack[SeqLookAt++] = Find;
@@ -162,11 +160,10 @@ public:
 			if (!Find.IsNotComplete)
 			{
 				b32 Success = false;
-				if (Find.Context->TotalFreq)
-				{
-					Success = decodeSymbol(Decoder, Find.Context, &ResultSymbol);
-					updateExclusionData(Find.Context);
-				}
+				Assert(Find.Context->TotalFreq)
+
+				Success = decodeSymbol(Decoder, Find.Context, &ResultSymbol);
+				updateExclusionData(Find.Context);
 
 				if (Success)
 				{
@@ -450,11 +447,12 @@ private:
 			{
 				b32 Success;
 
-				if (!ContextAt->Data)
+				Assert(ContextAt->Data);
+				/*if (!ContextAt->Data)
 				{
 					Success = initContext(ContextAt, Symbol);
 				}
-				else
+				else*/
 				{
 					Success = addSymbol(ContextAt, Symbol);
 				}
@@ -552,12 +550,10 @@ private:
 	{
 		b32 Success = false;
 
-		if (Context->EscapeFreq)
-		{
-			prob Prob = {};
-			Success = getProb(Context, Prob, Symbol);
-			Encoder.encode(Prob);
-		}
+		Assert(Context->EscapeFreq)
+		prob Prob = {};
+		Success = getProb(Context, Prob, Symbol);
+		Encoder.encode(Prob);
 
 		return Success;
 	}
@@ -660,8 +656,12 @@ private:
 		Exclusion = SubAlloc.alloc<context_data_excl>(1);
 		clearExclusion();
 
+		ContextCount++;
+
 		ContextZero = SubAlloc.alloc<context>(1);
 		ZeroStruct(*ContextZero);
+
+		initContext(ContextZero, 0);
 		ContextZero->Prev = StaticContext;
 
 		// last encoded symbols
