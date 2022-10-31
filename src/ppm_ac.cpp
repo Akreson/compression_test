@@ -180,6 +180,8 @@ public:
 
 		if (!OrderLooksLeft)
 		{
+			LastUsed = StaticContext;
+
 			u32 ExclTotal = getExcludedTotal(StaticContext) + 1;
 			u32 CurrFreq = Decoder.getCurrFreq(ExclTotal);
 			decode_symbol_result DecodedSymbol = getSymbolFromFreq(StaticContext, CurrFreq, ExclTotal);
@@ -552,9 +554,9 @@ private:
 				if (SeqAt != To) break;
 
 				context* EndSeqContext = SubAlloc.alloc<context>(1);
-				ContextCount++;
-
 				if (!EndSeqContext) break;
+
+				ContextCount++;
 
 				ContextAt = BuildContextFrom->Next = EndSeqContext;
 
@@ -563,19 +565,19 @@ private:
 			}
 			else
 			{
-				b32 Success;
-
 				Assert(ContextAt->Data);
-				Success = addSymbol(ContextAt, Symbol);
+
+				b32 Success = addSymbol(ContextAt, Symbol);
+				if (!Success) break;
 
 				if (ContextAt->TotalFreq >= FreqMaxValue)
 				{
 					rescale(ContextAt);
 				}
 
-				if (!Success) break;
 			}
 
+			ContextAt->Prev = Prev;
 			Prev = ContextAt;
 		}
 
