@@ -18,7 +18,6 @@
 //#include <x86intrin.h>
 #endif
 
-#define _DEBUG
 #ifdef _DEBUG
 	//#define Assert(Expression) assert(Expression)
 	#define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
@@ -58,6 +57,7 @@ static constexpr u32 CodeBit = 16;
 static constexpr u32 FreqBit = 14;
 static constexpr u32 CodeMaxValue = (1 << CodeBit) - 1;
 static constexpr u32 FreqMaxValue = (1 << FreqBit) - 1;
+
 static constexpr u32 OneFourth = (1 << (CodeBit - 2));
 static constexpr u32 OneHalf = OneFourth * 2;
 static constexpr u32 ThreeFourths = OneFourth * 3;
@@ -113,7 +113,6 @@ FindMostSignificantSetBit(u32 Source)
 
 	return Result;
 }
-
 
 inline u32
 CountOfSetBits(u32 Value)
