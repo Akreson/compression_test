@@ -57,7 +57,7 @@ public:
 		prob Result;
 		Result.lo = CumFreq[Symbol];
 		Result.hi = CumFreq[Symbol + 1];
-		Result.count = CumFreq[FreqArraySize - 1];
+		Result.scale = CumFreq[FreqArraySize - 1];
 
 		return Result;
 	}

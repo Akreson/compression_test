@@ -68,7 +68,7 @@ struct prob
 {
 	u32 lo;
 	u32 hi;
-	u32 count;
+	u32 scale;
 };
 
 inline constexpr u32

@@ -209,6 +209,8 @@ public:
 
 			if (!Find.IsNotComplete)
 			{
+				Assert(Find.Context->TotalFreq)
+
 				b32 Success = encodeSymbol(Encoder, Find.Context, Symbol);
 				if (Success)
 				{
@@ -219,7 +221,6 @@ public:
 				Prev = Find.Context->Prev;
 				Find.SymbolMiss = true;
 
-				Assert (Find.Context->TotalFreq)
 				updateExclusionData(Find.Context);
 			}
 
@@ -270,12 +271,9 @@ public:
 
 			if (!Find.IsNotComplete)
 			{
-				b32 Success = false;
 				Assert(Find.Context->TotalFreq)
 
-				Success = decodeSymbol(Decoder, Find.Context, &ResultSymbol);
-				updateExclusionData(Find.Context);
-
+				b32 Success = decodeSymbol(Decoder, Find.Context, &ResultSymbol);
 				if (Success)
 				{
 					LastUsed = Find.Context;
@@ -283,6 +281,7 @@ public:
 				}
 
 				Prev = Find.Context->Prev;
+				updateExclusionData(Find.Context);
 			}
 
 			ContextStack[SeqLookAt++] = Find;
@@ -312,7 +311,6 @@ public:
 		}
 
 		clearExclusion();
-
 		return ResultSymbol;
 	}
 
@@ -363,7 +361,7 @@ private:
 
 			Result.Symbol = MatchSymbol->Symbol;
 			Result.Prob.hi = CumFreq + MatchSymbol->Freq;
-			Result.Prob.count = ExclTotal;
+			Result.Prob.scale = ExclTotal;
 
 			MatchSymbol->Freq += 1;
 			Context->TotalFreq += 1;
@@ -375,7 +373,7 @@ private:
 		}
 		else
 		{
-			Result.Prob.count = Result.Prob.hi = ExclTotal;
+			Result.Prob.scale = Result.Prob.hi = ExclTotal;
 			Result.Symbol = EscapeSymbol;
 		}
 
@@ -520,7 +518,7 @@ private:
 				CumFreqHi += Freq;
 			}
 
-			Prob.count = Prob.lo + CumFreqHi + Context->EscapeFreq;
+			Prob.scale = Prob.lo + CumFreqHi + Context->EscapeFreq;
 
 			MatchSymbol->Freq += 1;
 			Context->TotalFreq += 1;
@@ -534,7 +532,7 @@ private:
 		}
 		else
 		{
-			Prob.count = Prob.hi = Prob.lo + Context->EscapeFreq;
+			Prob.scale = Prob.hi = Prob.lo + Context->EscapeFreq;
 		}
 
 		return Result;
@@ -685,7 +683,6 @@ private:
 				{
 					rescale(ContextAt);
 				}
-
 			}
 
 			ContextAt->Prev = Prev;

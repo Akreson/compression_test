@@ -26,8 +26,8 @@ public:
 	void encode(prob Prob)
 	{
 		u32 range = (hi - lo) + 1;
-		hi = lo + ((range * Prob.hi) / Prob.count) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.count);
+		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
+		lo = lo + ((range * Prob.lo) / Prob.scale);
 
 		for (;;)
 		{
@@ -121,8 +121,8 @@ public:
 	{
 		u32 range = (hi - lo) + 1;
 
-		hi = lo + ((range * Prob.hi) / Prob.count) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.count);
+		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
+		lo = lo + ((range * Prob.lo) / Prob.scale);
 
 		for (;;)
 		{
