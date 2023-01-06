@@ -117,7 +117,7 @@ void
 TestPPMModel(file_data& InputFile)
 {
 	u32 MemLimit = 10 << 20;
-	PPMByte PPMModel(3, MemLimit);
+	PPMByte PPMModel(4, MemLimit);
 	ByteVec CompressBuffer;
 
 	CompressFile(PPMModel, InputFile, CompressBuffer);
@@ -125,8 +125,8 @@ TestPPMModel(file_data& InputFile)
 	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
 
 	PPMModel.reset();
-#if 1
 
+#if 1
 	file_data OutputFile;
 	OutputFile.Size = InputFile.Size;
 	OutputFile.Data = new u8[OutputFile.Size];
