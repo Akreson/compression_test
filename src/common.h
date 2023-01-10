@@ -50,6 +50,7 @@ typedef uintptr_t umm;
 using ByteVec = std::vector<u8>;
 
 static constexpr u32 PtrAlign = sizeof(void*);
+static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
 
@@ -83,20 +84,6 @@ AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)
 
 	Result += AlignOffset;
 	return Result;
-}
-
-inline constexpr u32
-NextClosestPowerOf2U32(u32 Value)
-{
-	Value--;
-	Value |= Value >> 1;
-	Value |= Value >> 2;
-	Value |= Value >> 4;
-	Value |= Value >> 8;
-	Value |= Value >> 16;
-	Value++;
-
-	return Value;
 }
 
 struct bit_scan_result

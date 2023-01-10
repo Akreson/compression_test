@@ -25,6 +25,8 @@ public:
 
 	void encode(prob Prob)
 	{
+		Assert(Prob.scale < FreqMaxValue);
+
 		u32 range = (hi - lo) + 1;
 		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
 		lo = lo + ((range * Prob.lo) / Prob.scale);
