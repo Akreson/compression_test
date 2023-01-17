@@ -35,9 +35,13 @@ public:
 
 	~PPMByte() {delete SEE;}
 
+	u32 findcout = 0;
+	u32 prevcount = 0;
+	u32 notcomp = 0;
+
 	void encode(ArithEncoder& Encoder, u32 Symbol)
 	{
-		SeqLookAt = 0;
+		LastMaskedCount = SeqLookAt = 0;
 		u32 OrderLooksLeft = CurrSetOrderCount + 1;
 		
 		context* Prev = 0;
@@ -48,15 +52,22 @@ public:
 			if (Prev)
 			{
 				Find.Context = Prev;
+				prevcount++;
 			}
 			else
 			{
-				Find = findContext();
+				findcout++;
+				findContext(Find);
 			}
 
 			if (!Find.IsNotComplete)
 			{
-				Assert(Find.Context->TotalFreq)
+				Assert(Find.Context->TotalFreq);
+
+				if (Find.Context->BinExcVal == 0)
+				{
+					//__debugbreak();
+				}
 
 				b32 Success = encodeSymbol(Encoder, Find.Context, Symbol);
 				if (Success)
@@ -70,6 +81,10 @@ public:
 				Prev = Find.Context->Prev;
 				LastMaskedCount = Find.Context->SymbolCount;
 				updateExclusionData(Find.Context);
+			}
+			else
+			{
+				notcomp++;
 			}
 
 			ContextStack[SeqLookAt++] = Find;
@@ -101,7 +116,7 @@ public:
 	{
 		u32 ResultSymbol;
 		
-		SeqLookAt = 0;
+		LastMaskedCount = SeqLookAt = 0;
 		u32 OrderLooksLeft = CurrSetOrderCount + 1;
 		
 		context* Prev = 0;
@@ -109,13 +124,13 @@ public:
 		{
 			find_context_result Find = {};
 
-			if (Prev)
+ 			if (Prev)
 			{
 				Find.Context = Prev;
 			}
 			else
 			{
-				Find = findContext();
+				findContext(Find);
 			}
 
 			if (!Find.IsNotComplete)
@@ -138,6 +153,7 @@ public:
 
 			ContextStack[SeqLookAt++] = Find;
 			OrderLooksLeft--;
+
 		}
 
 		if (!OrderLooksLeft)
@@ -165,7 +181,7 @@ public:
 
 	void encodeEndOfStream(ArithEncoder& Encoder)
 	{
-		u32 OrderIndex = 0;
+		u32 OrderIndex = LastMaskedCount = 0;
 		while (OrderIndex <= CurrSetOrderCount)
 		{
 			find_context_result* Find = ContextStack + OrderIndex++;
@@ -188,7 +204,7 @@ private:
 
 	void rescale(context* Context)
 	{
-		Context->TotalFreq = 0;
+		Context->TotalFreq = Context->BinExcVal;
 		for (u32 i = 0; i < Context->SymbolCount; ++i)
 		{
 			context_data* Data = Context->Data + i;
@@ -230,16 +246,15 @@ private:
 			u32 CheckFreq = CumFreq + ModFreq;
 
 			if (CheckFreq > DecodeFreq) break;
-			CumFreq += ModFreq;
+			CumFreq = CheckFreq;
 		}
 
 		Result.Prob.lo = CumFreq;
 		if (SymbolIndex < Context->SymbolCount)
 		{
 			context_data* MatchSymbol = Context->Data + SymbolIndex;
-
-			Result.Symbol = MatchSymbol->Symbol;
 			Result.Prob.hi = CumFreq + MatchSymbol->Freq;
+			Result.Symbol = MatchSymbol->Symbol;
 
 			MatchSymbol->Freq += 4;
 			Context->TotalFreq += 4;
@@ -283,7 +298,8 @@ private:
 		}
 		else
 		{
-			Result.Prob.lo += First->Freq;
+			SEE->PrevSuccess = 0;
+			Result.Prob.lo = First->Freq;
 
 			u32 SymbolIndex = 1;
 			u32 CumFreq = Result.Prob.lo;
@@ -296,10 +312,10 @@ private:
 				if (CumFreq > DecodeFreq) break;
 			}
 
-			Result.Prob.lo = CumFreq - MatchSymbol->Freq;
 			if (SymbolIndex < Context->SymbolCount)
 			{
 				Result.Prob.hi = CumFreq;
+				Result.Prob.lo = CumFreq - MatchSymbol->Freq;
 				Result.Symbol = MatchSymbol->Symbol;
 
 				Context->TotalFreq += 4;
@@ -321,6 +337,7 @@ private:
 			}
 			else
 			{
+				Result.Prob.lo = CumFreq;
 				Result.Prob.hi = Result.Prob.scale;
 				Result.Symbol = EscapeSymbol;
 			}
@@ -335,9 +352,9 @@ private:
 		Result.Prob.scale = FreqMaxValue;
 		see_bin_context* BinCtx = SEE->getBinContext(Context);
 
+		context_data* Data = Context->Data;	
 		if (DecodeFreq < BinCtx->Scale)
 		{
-			context_data* Data = Context->Data;	
 			Result.Prob.hi = BinCtx->Scale;
 			Data->Freq += (Data->Freq < 128) ? 1 : 0;
 			BinCtx->Scale += Interval - SEE->getBinMean(BinCtx->Scale);
@@ -349,6 +366,12 @@ private:
 			Result.Prob.lo = BinCtx->Scale;
 			Result.Prob.hi = FreqMaxValue;
 			BinCtx->Scale -= SEE->getBinMean(BinCtx->Scale);
+			
+			// TODO: move to update
+			u8 EscVal = ExpEscape[BinCtx->Scale >> 10];
+			Context->TotalFreq += EscVal + Data->Freq;
+			Context->BinExcVal = EscVal;
+
 			SEE->PrevSuccess = 0;
 			Result.Symbol = EscapeSymbol;
 		}
@@ -359,7 +382,7 @@ private:
 	b32 decodeSymbol(ArithDecoder& Decoder, context* Context, u32* ResultSymbol)
 	{
 		b32 Success = false;
-		decode_symbol_result DecodedSymbol = {};
+		decode_symbol_result DecodedSymbol;
 
 		if (!SeqLookAt)
 		{
@@ -376,7 +399,16 @@ private:
 		}
 		else
 		{
-			DecodedSymbol = getSymbolFromFreq(Decoder, Context);
+			// TODO: remove
+			if (Context->SymbolCount == 1)
+			{
+				u32 CurrFreq = Decoder.getCurrFreq(FreqMaxValue);
+				DecodedSymbol = getSymbolFromFreqBin(Context, CurrFreq);
+			}
+			else
+			{
+				DecodedSymbol = getSymbolFromFreq(Decoder, Context);
+			}
 		}
 
 		Decoder.updateDecodeRange(DecodedSymbol.Prob);
@@ -467,7 +499,8 @@ private:
 		}
 		else
 		{
-			Prob.lo += First->Freq;
+			SEE->PrevSuccess = 0;
+			Prob.lo = First->Freq;
 
 			u32 SymbolIndex = 1;
 			context_data* MatchSymbol = 0;
@@ -518,6 +551,7 @@ private:
 		context_data* Data = Context->Data;
 		see_bin_context* BinCtx = SEE->getBinContext(Context);
 
+		u8 EscVal = 0;
 		if (Data->Symbol == Symbol)
 		{
 			Prob.hi = BinCtx->Scale;
@@ -531,6 +565,12 @@ private:
 			Prob.lo = BinCtx->Scale;
 			Prob.hi = FreqMaxValue;
 			BinCtx->Scale -= SEE->getBinMean(BinCtx->Scale);
+
+			// TODO: Move to update
+			EscVal = ExpEscape[BinCtx->Scale >> 10];
+			Context->TotalFreq += EscVal + Data->Freq;
+			Context->BinExcVal = EscVal;
+
 			SEE->PrevSuccess = 0;
 		}
 
@@ -555,7 +595,15 @@ private:
 		}
 		else
 		{
-			Success = getEncodeProb(Context, Prob, Symbol);
+			// TODO: remove?
+			if (Context->SymbolCount == 1)
+			{
+				Success = getEncodeProbBin(Context, Prob, Symbol);
+			}
+			else
+			{
+				Success = getEncodeProb(Context, Prob, Symbol);
+			}
 		}
 
 		Encoder.encode(Prob);
@@ -580,9 +628,8 @@ private:
 		return Result;
 	}
 
-	find_context_result findContext()
+	void findContext(find_context_result& Result)
 	{
-		find_context_result Result = {};
 		context* CurrContext = ContextZero;
 
 		u32 LookAtOrder = SeqLookAt; // from
@@ -615,8 +662,6 @@ private:
 		Result.Context = CurrContext;
 		Result.Order = LookAtOrder;
 		Result.IsNotComplete = To - LookAtOrder;
-
-		return Result;
 	}
 
 	//NOTE: ad hoc value

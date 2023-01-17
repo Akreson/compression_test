@@ -84,14 +84,15 @@ public:
 	{
 		see_context* Result;
 
-		if (PPMCont->SymbolCount < 256)
+		if (PPMCont->SymbolCount != 256)
 		{
 			u32 Index = 0;
 			Index += (Diff < (PPMCont->Prev->SymbolCount - PPMCont->SymbolCount)) ? 4 : 0;
 			Index += (PPMCont->TotalFreq < (11 * PPMCont->SymbolCount)) ? 2 : 0;
 			Index += (MaskedCount > Diff) ? 1 : 0;
 
-			Result = &Context[DiffToIndex[Diff - 1]][Index];
+			// TODO: change back to Diff - 1, currently contexts is shifted from their original use purpose
+			Result = &Context[DiffToIndex[Diff]][Index];
 		}
 		else
 		{
@@ -114,6 +115,8 @@ public:
 
 	void init()
 	{
+		PrevSuccess = 0;
+
 		static const u16 InitBinEsc[16] = {
 			0x3CDD, 0x1F3F, 0x59BF, 0x48F3, 0x5FFB, 0x5545, 0x63D1, 0x5D9D,
 			0x64A1, 0x5ABC, 0x6632, 0x6051, 0x68F6, 0x549B, 0x6BCA, 0x3AB0};

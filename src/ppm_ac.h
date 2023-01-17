@@ -22,8 +22,9 @@ struct context
 	context_data* Data;
 	context* Prev;
 	u32 TotalFreq;
-	//u16 EscapeFreq;
 	u16 SymbolCount;
+
+	u8 BinExcVal; // temp
 
 	static constexpr u32 MaxSymbol = 255;
 };
@@ -48,6 +49,8 @@ struct find_context_result
 	b16 IsNotComplete;
 	b16 SymbolMiss;
 };
+
+static const u8 ExpEscape[16] = {25, 14, 9, 7, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2};
 
 static constexpr u32 FreqBits = 7;
 static constexpr u32 Interval = 1 << FreqBits;
