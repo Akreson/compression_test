@@ -1,6 +1,7 @@
 
-class ArithEncoder
+struct ArithEncoder
 {
+public:
 	u32 lo;
 	u32 hi;
 	u32 PendingBits;
@@ -9,7 +10,6 @@ class ArithEncoder
 	u8 BitBuff;
 	u8 BitAccumCount;
 
-public:
 	ArithEncoder() = delete;
 	ArithEncoder(ByteVec& OutBuffer) :
 		Bytes(OutBuffer), lo(0), hi(CodeMaxValue), PendingBits(0), BitBuff(0), BitAccumCount(8) {}
@@ -25,11 +25,11 @@ public:
 
 	void encode(prob Prob)
 	{
-		Assert(Prob.scale < FreqMaxValue);
+		Assert(Prob.scale <= ProbMaxValue);
 
-		u32 range = (hi - lo) + 1;
-		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.scale);
+		u32 step = ((hi - lo) + 1) / Prob.scale;
+		hi = lo + (Prob.hi * step) - 1;
+		lo = lo + (Prob.lo * step);
 
 		for (;;)
 		{
@@ -84,8 +84,9 @@ private:
 	}
 };
 
-class ArithDecoder
+struct ArithDecoder
 {
+public:
 	u32 lo;
 	u32 hi;
 	u32 code;
@@ -97,14 +98,13 @@ class ArithDecoder
 	u32 ReadBytesPos;
 	u32 ReadBitPos;
 
-public:
 	ArithDecoder() = delete;
 	ArithDecoder(ByteVec& InputBuffer) :
 		BytesIn(InputBuffer), lo(0), hi(CodeMaxValue), code(0), ReadBytesPos(0), ReadBitPos(8)
 	{
 		InSize = InputBuffer.size();
 
-		for (u32 i = 0; i < 2; ++i)
+		for (u32 i = 0; i < 3; ++i)
 		{
 			code = (code << 8) | getByte();
 		}
@@ -114,17 +114,16 @@ public:
 
 	u32 getCurrFreq(u32 Scale)
 	{
-		u32 range = (hi - lo) + 1;
-		u32 scaledValue = ((code - lo + 1) * Scale - 1) / range;
+		u32 step = ((hi - lo) + 1) / Scale;
+		u32 scaledValue = (code - lo) / step;
 		return scaledValue;
 	}
 
 	void updateDecodeRange(prob Prob)
 	{
-		u32 range = (hi - lo) + 1;
-
-		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.scale);
+		u32 step = ((hi - lo) + 1) / Prob.scale;
+		hi = lo + (Prob.hi * step) - 1;
+		lo = lo + (Prob.lo * step);
 
 		for (;;)
 		{
@@ -149,12 +148,12 @@ public:
 			hi++;
 			lo <<= 1;
 
-			code = shiftBitToCode();
+			shiftBitToCode();
 		}
 	}
 
 private:
-	inline u32 shiftBitToCode()
+	inline void shiftBitToCode()
 	{
 		u32 Result = code << 1;
 
@@ -172,7 +171,7 @@ private:
 			}
 		}
 
-		return Result;
+		code = Result;
 	}
 
 	inline u8 getByte()
