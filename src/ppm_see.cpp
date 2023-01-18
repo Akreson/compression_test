@@ -121,8 +121,7 @@ public:
 			0x3CDD, 0x1F3F, 0x59BF, 0x48F3, 0x5FFB, 0x5545, 0x63D1, 0x5D9D,
 			0x64A1, 0x5ABC, 0x6632, 0x6051, 0x68F6, 0x549B, 0x6BCA, 0x3AB0};
 
-		u32 i;
-		for (i = 0; i < 128; i++)
+		for (u32 i = 0; i < 128; i++)
 		{
 			for (u32 j = 0; j < 16; j++)
 			{
@@ -130,7 +129,7 @@ public:
 			}
 		}
 
-		for (i = 0; i < 44; i++)
+		for (u32 i = 0; i < 44; i++)
 		{
 			for (u32 j = 0; j < 8; j++)
 			{

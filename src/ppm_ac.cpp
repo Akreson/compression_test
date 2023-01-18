@@ -35,10 +35,6 @@ public:
 
 	~PPMByte() {delete SEE;}
 
-	u32 findcout = 0;
-	u32 prevcount = 0;
-	u32 notcomp = 0;
-
 	void encode(ArithEncoder& Encoder, u32 Symbol)
 	{
 		LastMaskedCount = SeqLookAt = 0;
@@ -52,22 +48,15 @@ public:
 			if (Prev)
 			{
 				Find.Context = Prev;
-				prevcount++;
 			}
 			else
 			{
-				findcout++;
 				findContext(Find);
 			}
 
 			if (!Find.IsNotComplete)
 			{
 				Assert(Find.Context->TotalFreq);
-
-				if (Find.Context->BinExcVal == 0)
-				{
-					//__debugbreak();
-				}
 
 				b32 Success = encodeSymbol(Encoder, Find.Context, Symbol);
 				if (Success)
@@ -81,10 +70,6 @@ public:
 				Prev = Find.Context->Prev;
 				LastMaskedCount = Find.Context->SymbolCount;
 				updateExclusionData(Find.Context);
-			}
-			else
-			{
-				notcomp++;
 			}
 
 			ContextStack[SeqLookAt++] = Find;
@@ -226,6 +211,13 @@ private:
 		return Result;
 	}
 
+	inline void swapContextData(context_data* A, context_data* B)
+	{
+		context_data Tmp = *A;
+		*A = *B;
+		*B = Tmp;
+	}
+
 	decode_symbol_result getSymbolFromFreq(ArithDecoder& Decoder, context* Context)
 	{
 		decode_symbol_result Result = {};
@@ -324,9 +316,7 @@ private:
 				context_data* PrevSymbol = MatchSymbol - 1;
 				if (MatchSymbol->Freq > PrevSymbol->Freq)
 				{
-					context_data Tmp = *MatchSymbol;
-					*MatchSymbol = *PrevSymbol;
-					*PrevSymbol = Tmp;
+					swapContextData(MatchSymbol, PrevSymbol);
 					MatchSymbol = PrevSymbol;
 				}
 
@@ -352,14 +342,14 @@ private:
 		Result.Prob.scale = FreqMaxValue;
 		see_bin_context* BinCtx = SEE->getBinContext(Context);
 
-		context_data* Data = Context->Data;	
+		context_data* First = Context->Data;	
 		if (DecodeFreq < BinCtx->Scale)
 		{
 			Result.Prob.hi = BinCtx->Scale;
-			Data->Freq += (Data->Freq < 128) ? 1 : 0;
+			First->Freq += (First->Freq < 128) ? 1 : 0;
 			BinCtx->Scale += Interval - SEE->getBinMean(BinCtx->Scale);
 			SEE->PrevSuccess = 1;
-			Result.Symbol = Data->Symbol;
+			Result.Symbol = First->Symbol;
 		}
 		else
 		{
@@ -369,7 +359,7 @@ private:
 			
 			// TODO: move to update
 			u8 EscVal = ExpEscape[BinCtx->Scale >> 10];
-			Context->TotalFreq += EscVal + Data->Freq;
+			Context->TotalFreq += EscVal + First->Freq;
 			Context->BinExcVal = EscVal;
 
 			SEE->PrevSuccess = 0;
@@ -430,6 +420,7 @@ private:
 		LastSEECtx = SEE->getContext(Context, MaskedDiff, LastMaskedCount);
 		Prob.scale = SEE->getMean(LastSEECtx);
 
+		u32 CumFreq = 0;
 		u32 SymbolIndex = 0;
 		for (; SymbolIndex < Context->SymbolCount; ++SymbolIndex)
 		{
@@ -437,15 +428,16 @@ private:
 			if (Data->Symbol == Symbol) break;
 			
 			u32 Freq = Data->Freq & Exclusion->Data[Data->Symbol];
-			Prob.lo += Freq;
+			CumFreq += Freq;
 		}
 
+		Prob.lo = CumFreq;
 		if (SymbolIndex < Context->SymbolCount)
 		{
 			context_data* MatchSymbol = Context->Data + SymbolIndex;
 			Prob.hi = Prob.lo + MatchSymbol->Freq;
 
-			u32 CumFreqHi = 0;
+			u32 CumFreqHi = Prob.lo;
 			for (u32 i = SymbolIndex; i < Context->SymbolCount; ++i)
 			{
 				context_data* Data = Context->Data + i;
@@ -453,7 +445,7 @@ private:
 				CumFreqHi += Freq;
 			}
 
-			Prob.scale += Prob.lo + CumFreqHi;
+			Prob.scale += CumFreqHi;
 			
 			MatchSymbol->Freq += 4;
 			Context->TotalFreq += 4;
@@ -522,9 +514,7 @@ private:
 				context_data* PrevSymbol = MatchSymbol - 1;
 				if (MatchSymbol->Freq > PrevSymbol->Freq)
 				{
-					context_data Tmp = *MatchSymbol;
-					*MatchSymbol = *PrevSymbol;
-					*PrevSymbol = Tmp;
+					swapContextData(MatchSymbol, PrevSymbol);
 					MatchSymbol = PrevSymbol;
 				}
 
@@ -548,14 +538,13 @@ private:
 	{
 		b32 Success = false;
 		Prob.scale = FreqMaxValue;
-		context_data* Data = Context->Data;
 		see_bin_context* BinCtx = SEE->getBinContext(Context);
 
-		u8 EscVal = 0;
-		if (Data->Symbol == Symbol)
+		context_data* First = Context->Data;
+		if (First->Symbol == Symbol)
 		{
 			Prob.hi = BinCtx->Scale;
-			Data->Freq += (Data->Freq < 128) ? 1 : 0;
+			First->Freq += (First->Freq < 128) ? 1 : 0;
 			BinCtx->Scale += Interval - SEE->getBinMean(BinCtx->Scale);
 			SEE->PrevSuccess = 1;
 			Success = true;
@@ -567,8 +556,8 @@ private:
 			BinCtx->Scale -= SEE->getBinMean(BinCtx->Scale);
 
 			// TODO: Move to update
-			EscVal = ExpEscape[BinCtx->Scale >> 10];
-			Context->TotalFreq += EscVal + Data->Freq;
+			u8 EscVal = ExpEscape[BinCtx->Scale >> 10];
+			Context->TotalFreq += EscVal + First->Freq;
 			Context->BinExcVal = EscVal;
 
 			SEE->PrevSuccess = 0;
