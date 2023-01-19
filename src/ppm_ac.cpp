@@ -24,7 +24,7 @@ public:
 	static constexpr u32 EscapeSymbol = context::MaxSymbol + 1;
 
 	// For debug
-	u64 ContextCount;
+	//u64 ContextCount;
 
 	PPMByte() = delete;
 	PPMByte(u32 MaxOrderContext, u32 MemLimit) :
@@ -154,7 +154,7 @@ public:
 			}
 		}
 
-		if (update(ResultSymbol))
+		if ((ResultSymbol != EscapeSymbol) && update(ResultSymbol))
 		{
 			updateOrderSeq(ResultSymbol);
 		}
@@ -166,10 +166,9 @@ public:
 	void encodeEndOfStream(ArithEncoder& Encoder)
 	{
 		u32 OrderIndex = LastMaskedCount = SeqLookAt = 0;
-
-		context* Prev = 0;
-		context* EscContext = 0;
 		u32 OrderLooksLeft = CurrSetOrderCount + 1;
+
+		context* EscContext = 0;
 		while (OrderLooksLeft)
 		{
 			find_context_result Find = findContext();
@@ -184,11 +183,15 @@ public:
 			OrderLooksLeft--;
 		}
 
-		while (EscContext->Prev)
+		if (EscContext)
 		{
-			encodeSymbol(Encoder, EscContext, EscapeSymbol);
-			updateExclusionData(EscContext);
-			EscContext = EscContext->Prev;
+			while (EscContext->Prev)
+			{
+				encodeSymbol(Encoder, EscContext, EscapeSymbol);
+				updateExclusionData(EscContext);
+				EscContext = EscContext->Prev;
+				Assert(EscContext);
+			}
 		}
 
 		prob Prob = {};
@@ -673,7 +676,7 @@ private:
 		}
 
 		Result.Context = CurrContext;
-		Result.Order = LookAtOrder;
+		Result.SeqIndex = LookAtOrder;
 		Result.IsNotComplete = To - LookAtOrder;
 	}
 
@@ -762,12 +765,11 @@ private:
 
 			if (Update->IsNotComplete)
 			{
-				u32 SeqAt = Update->Order;
 				context_data* BuildContextFrom = 0;
 
 				if (Update->SymbolMiss)
 				{
-					b32 Success = addSymbol(ContextAt, ContextSeq[SeqAt]);
+					b32 Success = addSymbol(ContextAt, ContextSeq[Update->SeqIndex]);
 					if (!Success) break;
 
 					BuildContextFrom = ContextAt->Data + (ContextAt->SymbolCount - 1);
@@ -777,15 +779,14 @@ private:
 					BuildContextFrom = ContextAt->Data + Update->ChainMissIndex;
 				}
 
-				SeqAt += 1;
-
+				u32 SeqAt = Update->SeqIndex + 1;
 				u32 To = CurrSetOrderCount;
 				while (SeqAt < To)
 				{
 					context* Next = SubAlloc.alloc<context>(1);
 					if (!Next) break;
 
-					ContextCount++;
+					//ContextCount++;
 					ContextAt = BuildContextFrom->Next = Next;
 
 					b32 Success = initContext(ContextAt, ContextSeq[SeqAt]);
@@ -800,7 +801,7 @@ private:
 				context* EndSeqContext = SubAlloc.alloc<context>(1);
 				if (!EndSeqContext) break;
 
-				ContextCount++;
+				//ContextCount++;
 				ContextAt = BuildContextFrom->Next = EndSeqContext;
 
 				b32 Success = initContext(ContextAt, Symbol);
@@ -809,7 +810,6 @@ private:
 			else
 			{
 				Assert(ContextAt->Data);
-
 				b32 Success = addSymbol(ContextAt, Symbol);
 				if (!Success) break;
 			}
@@ -828,7 +828,6 @@ private:
 
 		return Result;
 	}
-
 
 	inline void updateOrderSeq(u32 Symbol)
 	{
@@ -879,7 +878,8 @@ private:
 	void initModel()
 	{
 		LastSEECtx = nullptr;
-		CurrSetOrderCount = ContextCount = 0;
+		CurrSetOrderCount = 0;
+		//ContextCount = 2;
 
 		StaticContext = SubAlloc.alloc<context>(1);
 		ZeroStruct(*StaticContext);
@@ -898,8 +898,6 @@ private:
 		Exclusion = SubAlloc.alloc<context_data_excl>(1);
 		clearExclusion();
 
-		ContextCount++;
-
 		ContextZero = SubAlloc.alloc<context>(1);
 		ZeroStruct(*ContextZero);
 
@@ -911,8 +909,6 @@ private:
 
 		// max symbol seq + context for that seq
 		ContextStack = SubAlloc.alloc<find_context_result>(OrderCount + 1);
-
-		ContextCount++;
 
 		initSEE();
 	}

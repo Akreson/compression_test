@@ -44,7 +44,7 @@ struct symbol_search_result
 struct find_context_result
 {
 	context* Context;
-	u16 Order;
+	u16 SeqIndex;
 	u16 ChainMissIndex;
 	b16 IsNotComplete;
 	b16 SymbolMiss;
