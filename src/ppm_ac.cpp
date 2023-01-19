@@ -138,7 +138,6 @@ public:
 
 			ContextStack[SeqLookAt++] = Find;
 			OrderLooksLeft--;
-
 		}
 
 		if (!OrderLooksLeft)
@@ -166,12 +165,30 @@ public:
 
 	void encodeEndOfStream(ArithEncoder& Encoder)
 	{
-		u32 OrderIndex = LastMaskedCount = 0;
-		while (OrderIndex <= CurrSetOrderCount)
+		u32 OrderIndex = LastMaskedCount = SeqLookAt = 0;
+
+		context* Prev = 0;
+		context* EscContext = 0;
+		u32 OrderLooksLeft = CurrSetOrderCount + 1;
+		while (OrderLooksLeft)
 		{
-			find_context_result* Find = ContextStack + OrderIndex++;
-			encodeSymbol(Encoder, Find->Context, EscapeSymbol);
-			updateExclusionData(Find->Context);
+			find_context_result Find = findContext();
+
+			if (!Find.IsNotComplete)
+			{
+				EscContext = Find.Context;
+				break;
+			}
+
+			SeqLookAt++;
+			OrderLooksLeft--;
+		}
+
+		while (EscContext->Prev)
+		{
+			encodeSymbol(Encoder, EscContext, EscapeSymbol);
+			updateExclusionData(EscContext);
+			EscContext = EscContext->Prev;
 		}
 
 		prob Prob = {};
@@ -615,6 +632,13 @@ private:
 		}
 
 		return Result;
+	}
+
+	inline find_context_result findContext(void)
+	{
+		find_context_result Find = {};
+		findContext(Find);
+		return Find;
 	}
 
 	void findContext(find_context_result& Result)
