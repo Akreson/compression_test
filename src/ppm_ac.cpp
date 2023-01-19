@@ -31,6 +31,8 @@ public:
 		SubAlloc(MemLimit, sizeof(context_data)*2), SEE(nullptr), OrderCount(MaxOrderContext)
 	{
 		initModel();
+		SEE = new SEEState;
+		SEE->init();
 	}
 
 	~PPMByte() {delete SEE;}
@@ -203,6 +205,7 @@ public:
 	{
 		SubAlloc.reset();
 		initModel();
+		SEE->init();
 	}
 
 private:
@@ -379,6 +382,9 @@ private:
 			
 			// TODO: move to update
 			u8 EscVal = ExpEscape[BinCtx->Scale >> 10];
+			if (First->Freq < ((MaxFreq / 4) - 1)) First->Freq += First->Freq;
+			else First->Freq = MaxFreq - 4;
+
 			Context->TotalFreq += EscVal + First->Freq;
 			Context->BinExcVal = EscVal;
 
@@ -577,6 +583,9 @@ private:
 
 			// TODO: Move to update
 			u8 EscVal = ExpEscape[BinCtx->Scale >> 10];
+			if (First->Freq < ((MaxFreq / 4) - 1)) First->Freq += First->Freq;
+			else First->Freq = MaxFreq - 4;
+
 			Context->TotalFreq += EscVal + First->Freq;
 			Context->BinExcVal = EscVal;
 
@@ -871,8 +880,7 @@ private:
 		{
 			SEE = new SEEState;
 		}
-
-		SEE->init();
+			SEE->init();
 	}
 
 	void initModel()
@@ -910,6 +918,6 @@ private:
 		// max symbol seq + context for that seq
 		ContextStack = SubAlloc.alloc<find_context_result>(OrderCount + 1);
 
-		initSEE();
+		//initSEE();
 	}
 };
