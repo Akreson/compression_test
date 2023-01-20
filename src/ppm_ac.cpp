@@ -210,16 +210,62 @@ public:
 
 private:
 
-	void rescale(context* Context)
+	void rescale(context* Context, context_data* RescaleAt)
 	{
-		Context->TotalFreq = Context->BinExcVal;
-		for (u32 i = 0; i < Context->SymbolCount; ++i)
+		context_data Temp;
+
+		RescaleAt->Freq += 4;
+		Context->TotalFreq += 4;
+		context_data* First = Context->Data;
+
+		u32 MoveCount = RescaleAt - Context->Data;
+		if (MoveCount)
 		{
-			context_data* Data = Context->Data + i;
-			u32 NewFreq = (Data->Freq + 1) / 2;
-			Data->Freq = NewFreq;
-			Context->TotalFreq += NewFreq;
+			Temp = *RescaleAt;
+			for (u32 i = MoveCount; i > 0; i--)
+			{
+				Context->Data[i] = Context->Data[i - 1];
+			}
+			*First = Temp;
 		}
+
+		u32 EscFreq = Context->TotalFreq - First->Freq;
+		First->Freq = (First->Freq + 1) >> 1;
+
+		Context->TotalFreq = First->Freq;
+
+		for (u32 SymbolIndex = 1; SymbolIndex < Context->SymbolCount; SymbolIndex++)
+		{
+			context_data* Symbol = Context->Data + SymbolIndex;
+			EscFreq -= Symbol->Freq;
+			Symbol->Freq = (Symbol->Freq + 1) >> 1;
+			Context->TotalFreq += Symbol->Freq;
+
+			context_data* Prev = Symbol - 1;
+			if (Symbol->Freq > Prev->Freq)
+			{
+				for (;;)
+				{
+					context_data* NextPrev = Prev - 1;
+					if ((NextPrev != First) && (Symbol->Freq > NextPrev->Freq)) Prev = NextPrev;
+					else break;
+				}
+
+				u32 MoveCount = Symbol - Prev;
+				if (MoveCount)
+				{
+					Temp = *Symbol;
+					for (u32 i = SymbolIndex; MoveCount > 0; i--, MoveCount--)
+					{
+						Context->Data[i] = Context->Data[i - 1];
+					}
+					*Prev = Temp;
+				}
+			}
+		}
+
+		EscFreq -= EscFreq >> 1;
+		Context->TotalFreq += EscFreq;
 	}
 
 	u32 getExcludedTotal(context* Context)
@@ -276,7 +322,7 @@ private:
 
 			if (MatchSymbol->Freq > MaxFreq)
 			{
-				rescale(Context);
+				rescale(Context, MatchSymbol);
 			}
 		}
 		else
@@ -308,7 +354,7 @@ private:
 
 			if (First->Freq > MaxFreq)
 			{
-				rescale(Context);
+				rescale(Context, First);
 			}
 		}
 		else
@@ -345,7 +391,7 @@ private:
 
 				if (MatchSymbol->Freq > MaxFreq)
 				{
-					rescale(Context);
+					rescale(Context, MatchSymbol);
 				}
 			}
 			else
@@ -478,7 +524,7 @@ private:
 
 			if (MatchSymbol->Freq > MaxFreq)
 			{
-				rescale(Context);
+				rescale(Context, MatchSymbol);
 			}
 
 			Result = true;
@@ -510,7 +556,7 @@ private:
 
 			if (First->Freq > MaxFreq)
 			{
-				rescale(Context);
+				rescale(Context, First);
 			}
 
 			Result = true;
@@ -546,7 +592,7 @@ private:
 
 				if (MatchSymbol->Freq > MaxFreq)
 				{
-					rescale(Context);
+					rescale(Context, MatchSymbol);
 				}
 
 				Result = true;
