@@ -2,6 +2,8 @@
 #include "suballoc.cpp"
 #include "ac.cpp"
 #include "static_ac.cpp"
+#include "ppm_ac.h"
+#include "ppm_see.cpp"
 #include "ppm_ac.cpp"
 
 void
@@ -116,7 +118,7 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 void
 TestPPMModel(file_data& InputFile)
 {
-	u32 MemLimit = 10 << 20;
+	u32 MemLimit = 20 << 20;
 	PPMByte PPMModel(4, MemLimit);
 	ByteVec CompressBuffer;
 

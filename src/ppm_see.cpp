@@ -91,11 +91,11 @@ public:
 			Index += (PPMCont->TotalFreq < (11 * PPMCont->SymbolCount)) ? 2 : 0;
 			Index += (MaskedCount > Diff) ? 1 : 0;
 
-			// TODO: change back to Diff - 1, currently contexts is shifted from their original use purpose
-			Result = &Context[DiffToIndex[Diff]][Index];
+			Result = &Context[DiffToIndex[Diff - 1]][Index];
 		}
 		else
 		{
+			//TODO: return 1 in this case
 			Result = &Context[43][0];
 		}
 

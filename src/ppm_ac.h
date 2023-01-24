@@ -21,10 +21,8 @@ struct context
 {
 	context_data* Data;
 	context* Prev;
-	u32 TotalFreq;
+	u16 TotalFreq;
 	u16 SymbolCount;
-
-	u8 BinExcVal; // temp
 
 	static constexpr u32 MaxSymbol = 255;
 };
