@@ -597,24 +597,17 @@ private:
 		return Result;
 	}
 
-	//TODO: add init freq
-	b32 addSymbol(context* Context, u32 Symbol)
+	context_data* allocSymbol(context* Context)
 	{
-		b32 Result = false;
+		context_data* Result = nullptr;
 
 		u32 PreallocSymbol = getContextDataPreallocCount(Context);
 		Context->Data = SubAlloc.realloc(Context->Data, ++Context->SymbolCount, PreallocSymbol);
 
 		if (Context->Data)
 		{
-			context_data* Data = Context->Data + (Context->SymbolCount - 1);
-			Data->Freq = 1;
-			Data->Symbol = Symbol;
-			Data->Next = nullptr;
-
-			Context->TotalFreq += 1;
-
-			Result = true;
+			Result = Context->Data + (Context->SymbolCount - 1);
+			ZeroStruct(*Result);
 		}
 
 		return Result;
@@ -663,8 +656,8 @@ private:
 		for (; ContextAt != MinContext; ContextAt = ContextAt->Prev, *StackPtr++ = NewSym)
 		{
 			u32 OldCount = ContextAt->SymbolCount;
-			b32 Success = addSymbol(ContextAt, LastEncSym->Symbol);
-			if (!Success)
+			NewSym = allocSymbol(ContextAt);
+			if (!NewSym)
 			{
 				ContextAt = nullptr;
 				break;
@@ -687,8 +680,9 @@ private:
 				ContextAt->TotalFreq += AddFreq;
 			}
 
-			NewSym = ContextAt->Data + (ContextAt->SymbolCount - 1);
 			NewSym->Freq = 1;
+			NewSym->Symbol = LastEncSym->Symbol;
+			ContextAt->TotalFreq += 1;
 		}
 
 		if (ContextAt)
