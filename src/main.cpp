@@ -124,7 +124,8 @@ TestPPMModel(file_data& InputFile)
 
 	CompressFile(PPMModel, InputFile, CompressBuffer);
 	u64 CompressedSize = CompressBuffer.size();
-	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
+	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	printf("Sym: %.3f | Esc: %.3f", PPMModel.SymEnc, PPMModel.EscEnc);
 
 	PPMModel.reset();
 

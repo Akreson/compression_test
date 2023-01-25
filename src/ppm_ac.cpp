@@ -1,6 +1,8 @@
 //#include "ppm_ac.h"
 //#include "ppm_see.cpp"
 
+#include <cmath>
+
 class PPMByte
 {
 	SEEState* SEE;
@@ -21,6 +23,11 @@ public:
 	StaticSubAlloc SubAlloc;
 	static constexpr u32 EscapeSymbol = context::MaxSymbol + 1;
 
+#ifdef _DEBUG
+	f64 SymEnc;
+	f64 EscEnc;
+#endif
+
 	PPMByte() = delete;
 	PPMByte(u32 MaxOrderContext, u32 MemLimit) :
 		SubAlloc(MemLimit, sizeof(context_data) * 2), SEE(nullptr), OrderCount(MaxOrderContext)
@@ -28,6 +35,11 @@ public:
 		initModel();
 		SEE = new SEEState;
 		SEE->init();
+
+#ifdef _DEBUG
+		SymEnc = 0.0;
+		EscEnc = 0.0;
+#endif
 	}
 
 	~PPMByte() { delete SEE; }
@@ -45,6 +57,10 @@ public:
 		{
 			Success = getEncodeProbLeaf(MinContext, Prob, Symbol);
 		}
+
+#ifdef _DEBUG
+		calcEncBits(Prob, Success);
+#endif
 		Encoder.encode(Prob);
 
 		while (!Success)
@@ -57,6 +73,9 @@ public:
 			if (!MinContext) break;
 
 			Success = getEncodeProb(MinContext, Prob, Symbol);
+#ifdef _DEBUG
+			calcEncBits(Prob, Success);
+#endif
 			Encoder.encode(Prob);
 		}
 
@@ -119,6 +138,8 @@ public:
 	inline void encodeEndOfStream(ArithEncoder& Encoder)
 	{
 		encode(Encoder, PPMByte::EscapeSymbol);
+		SymEnc = SymEnc / 8.0;
+		EscEnc = EscEnc / 8.0;
 	}
 
 	void reset()
@@ -129,6 +150,21 @@ public:
 	}
 
 private:
+
+	void calcEncBits(prob Prob, b32 Success)
+	{
+		f64 diff = (f64)Prob.hi - (f64)Prob.lo;
+		f64 p = diff / (f64)Prob.scale;
+		if (Success)
+		{
+			SymEnc += -std::log2(p);
+		}
+		else
+		{
+			EscEnc += -std::log2(p);
+		}
+	}
+
 	inline void swapContextData(context_data* A, context_data* B)
 	{
 		context_data Tmp = *A;
@@ -640,12 +676,15 @@ private:
 				if (First->Freq < ((MaxFreq / 4) - 1)) First->Freq += First->Freq;
 				else First->Freq = MaxFreq - 4;
 
-				ContextAt->TotalFreq = InitEsc + First->Freq;
+				ContextAt->TotalFreq = InitEsc + First->Freq + (MinContext->SymbolCount > 3);
 			}
 			else
-			{		
-				ContextAt->TotalFreq += (2*ContextAt->SymbolCount < MinContext->SymbolCount) + 
-					2*(4*ContextAt->SymbolCount) & (ContextAt->TotalFreq <= 8*ContextAt->SymbolCount);
+			{	
+				u16 AddFreq = (2 * ContextAt->SymbolCount < MinContext->SymbolCount) ? 1 : 0;
+				u16 tmp = (4 * ContextAt->SymbolCount <= MinContext->SymbolCount) ? 1 : 0;
+				tmp &= (ContextAt->TotalFreq <= 8 * ContextAt->SymbolCount);
+				AddFreq += tmp * 2;
+				ContextAt->TotalFreq += AddFreq;
 			}
 
 			NewSym = ContextAt->Data + (ContextAt->SymbolCount - 1);
