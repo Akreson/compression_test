@@ -6,7 +6,6 @@
 class PPMByte
 {
 	SEEState* SEE;
-	see_context* LastSEECtx;
 
 	context_data_excl* Exclusion;
 	context* MaxContext;
@@ -247,17 +246,7 @@ private:
 		decode_symbol_result Result = {};
 
 		u32 MaskedDiff = MinContext->SymbolCount - LastMaskedCount;
-		LastSEECtx = SEE->getContext(MinContext, MaskedDiff, LastMaskedCount);
-
-		if (MinContext == Order0)
-		{
-			Result.Prob.scale = 1;
-		}
-		else
-		{
-			Result.Prob.scale = SEE->getMean(LastSEECtx);
-		}
-
+		Result.Prob.scale = SEE->getContextMean(MinContext, MaskedDiff, LastMaskedCount);
 		Result.Prob.scale += getExcludedTotal(MinContext);
 		u32 DecodeFreq = Decoder.getCurrFreq(Result.Prob.scale);
 
@@ -293,7 +282,7 @@ private:
 		else
 		{
 			Result.Prob.hi = Result.Prob.scale;
-			LastSEECtx->Summ += Result.Prob.scale;
+			SEE->LastUsed->Summ += Result.Prob.scale;
 			Result.Symbol = EscapeSymbol;
 			LastMaskedCount = MinContext->SymbolCount;
 			updateExclusionData(MinContext);
@@ -413,16 +402,7 @@ private:
 		b32 Result = false;
 
 		u32 MaskedDiff = MinContext->SymbolCount - LastMaskedCount;
-		LastSEECtx = SEE->getContext(MinContext, MaskedDiff, LastMaskedCount);
-
-		if (MinContext == Order0)
-		{
-			Prob.scale = 1;
-		}
-		else
-		{
-			Prob.scale = SEE->getMean(LastSEECtx);
-		}
+		Prob.scale = SEE->getContextMean(MinContext, MaskedDiff, LastMaskedCount);
 
 		u32 CumFreq = 0;
 		u32 SymbolIndex = 0;
@@ -467,7 +447,7 @@ private:
 		{
 			Prob.scale += Prob.lo;
 			Prob.hi = Prob.scale;
-			LastSEECtx->Summ += Prob.scale;
+			SEE->LastUsed->Summ += Prob.scale;
 			LastMaskedCount = MinContext->SymbolCount;
 			updateExclusionData(MinContext);
 		}
@@ -638,6 +618,8 @@ private:
 		context_data** StackPtr = ContextStack;
 		context* ContextAt = MaxContext;
 
+		SEE->updateLastUsed();
+
 		if (ContextAt->SymbolCount == 0)
 		{
 			do
@@ -706,12 +688,6 @@ private:
 			}
 			
 			MaxContext = (*StackPtr)->Next = ContextAt;
-		}
-
-		if (LastSEECtx)
-		{
-			SEE->updateContext(LastSEECtx);
-			LastSEECtx = nullptr;
 		}
 		
 		if (!ContextAt) reset();

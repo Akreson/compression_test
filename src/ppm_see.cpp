@@ -14,6 +14,7 @@ struct see_bin_context
 class SEEState
 {
 public:
+	see_context* LastUsed;
 	u8 PrevSuccess;
 	u8 NToIndex[256];
 	u8 DiffToIndex[256];
@@ -24,6 +25,7 @@ public:
 	~SEEState() {}
 	SEEState()
 	{
+		LastUsed = nullptr;
 		PrevSuccess = 0;
 
 		u32 i;
@@ -72,17 +74,17 @@ public:
 		return Result;
 	}
 
-	inline void updateContext(see_context* Context)
+	inline void updateLastUsed(void)
 	{
-		if ((Context->Shift < FreqBits) && (--Context->Count == 0)) {
-			Context->Summ += Context->Summ;
-			Context->Count = 2 << ++Context->Shift;
+		if ((LastUsed->Shift < FreqBits) && (--LastUsed->Count == 0)) {
+			LastUsed->Summ += LastUsed->Summ;
+			LastUsed->Count = 2 << ++LastUsed->Shift;
 		}
 	}
 
-	inline see_context* getContext(context* PPMCont, u32 Diff, u32 MaskedCount)
+	inline u16 getContextMean(context* PPMCont, u32 Diff, u32 MaskedCount)
 	{
-		see_context* Result;
+		u16 Result;
 
 		if (PPMCont->SymbolCount != 256)
 		{
@@ -91,12 +93,13 @@ public:
 			Index += (PPMCont->TotalFreq < (11 * PPMCont->SymbolCount)) ? 2 : 0;
 			Index += (MaskedCount > Diff) ? 1 : 0;
 
-			Result = &Context[DiffToIndex[Diff - 1]][Index];
+			LastUsed = &Context[DiffToIndex[Diff - 1]][Index];
+			Result = getMean(LastUsed);
 		}
 		else
 		{
-			//TODO: return 1 in this case
-			Result = &Context[43][0];
+			LastUsed = &Context[43][0];
+			Result = 1;
 		}
 
 		return Result;
