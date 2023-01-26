@@ -23,10 +23,8 @@ public:
 	StaticSubAlloc SubAlloc;
 	static constexpr u32 EscapeSymbol = context::MaxSymbol + 1;
 
-#ifdef _DEBUG
 	f64 SymEnc;
 	f64 EscEnc;
-#endif
 
 	PPMByte() = delete;
 	PPMByte(u32 MaxOrderContext, u32 MemLimit) :
@@ -58,9 +56,7 @@ public:
 			Success = getEncodeProbLeaf(Prob, Symbol);
 		}
 
-#ifdef _DEBUG
 		calcEncBits(Prob, Success);
-#endif
 		Encoder.encode(Prob);
 
 		while (!Success)
@@ -73,9 +69,8 @@ public:
 			if (!MinContext) break;
 
 			Success = getEncodeProb(Prob, Symbol);
-#ifdef _DEBUG
+
 			calcEncBits(Prob, Success);
-#endif
 			Encoder.encode(Prob);
 		}
 
@@ -138,8 +133,11 @@ public:
 	inline void encodeEndOfStream(ArithEncoder& Encoder)
 	{
 		encode(Encoder, PPMByte::EscapeSymbol);
+
+#ifdef _DEBUG
 		SymEnc = SymEnc / 8.0;
 		EscEnc = EscEnc / 8.0;
+#endif
 	}
 
 	void reset()
@@ -153,6 +151,7 @@ private:
 
 	void calcEncBits(prob Prob, b32 Success)
 	{
+#ifdef _DEBUG
 		f64 diff = (f64)Prob.hi - (f64)Prob.lo;
 		f64 p = diff / (f64)Prob.scale;
 		if (Success)
@@ -163,6 +162,7 @@ private:
 		{
 			EscEnc += -std::log2(p);
 		}
+#endif
 	}
 
 	inline void swapContextData(context_data* A, context_data* B)
@@ -655,7 +655,7 @@ private:
 		context_data* NewSym;
 		for (; ContextAt != MinContext; ContextAt = ContextAt->Prev, *StackPtr++ = NewSym)
 		{
-			u32 OldCount = ContextAt->SymbolCount;
+			u16 OldCount = ContextAt->SymbolCount;
 			NewSym = allocSymbol(ContextAt);
 			if (!NewSym)
 			{
