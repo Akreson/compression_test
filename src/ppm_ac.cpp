@@ -3,6 +3,8 @@
 
 #include <cmath>
 
+//ppmdf version of PPMD
+
 class PPMByte
 {
 	SEEState* SEE;
@@ -204,7 +206,6 @@ private:
 
 		u32 EscFreq = Context->TotalFreq - First->Freq;
 		First->Freq = (First->Freq + 1) >> 1;
-
 		Context->TotalFreq = First->Freq;
 
 		for (u32 SymbolIndex = 1; SymbolIndex < Context->SymbolCount; SymbolIndex++)
@@ -618,15 +619,33 @@ private:
 		context_data** StackPtr = ContextStack;
 		context* ContextAt = MaxContext;
 
+		u32 f0 = LastEncSym->Freq;
+		u32 cf = LastEncSym->Freq - 1;
+		u32 sf = MinContext->TotalFreq - MinContext->SymbolCount;
+		u32 s0 = sf - cf;
+		u16 InitFreq;
+
 		SEE->updateLastUsed();
 
 		if (ContextAt->SymbolCount == 0)
 		{
+			if (MinContext->SymbolCount == 1)
+			{
+				InitFreq = f0;
+			}
+			else
+			{
+				InitFreq = 1;
+				u32 MoreC = (cf + s0 - 1) / s0;
+				u32 LessC = (4 * cf > s0) ? 1 : 0;
+				InitFreq += cf <= s0 ? LessC : MoreC;
+			}
+
 			do
 			{
 				context_data* First = ContextAt->Data;
 				First->Symbol = LastEncSym->Symbol;
-				First->Freq = 1;
+				First->Freq = InitFreq;
 
 				ContextAt->SymbolCount = 1;
 				ContextAt = ContextAt->Prev;
@@ -657,14 +676,25 @@ private:
 			{	
 				u16 AddFreq = (2 * ContextAt->SymbolCount < MinContext->SymbolCount) ? 1 : 0;
 				u16 tmp = (4 * ContextAt->SymbolCount <= MinContext->SymbolCount) ? 1 : 0;
-				tmp &= (ContextAt->TotalFreq <= 8 * ContextAt->SymbolCount);
+				tmp &= (ContextAt->TotalFreq <= 8 * ContextAt->SymbolCount) ? 1 : 0;
 				AddFreq += tmp * 2;
 				ContextAt->TotalFreq += AddFreq;
 			}
 
-			NewSym->Freq = 1;
+			cf = 2 * f0 * (ContextAt->TotalFreq + 6);
+			sf = s0 + ContextAt->TotalFreq;
+
+			if (cf < 6 * sf) {
+				InitFreq = 1 + (cf >= sf) + (cf >= 4 * sf);
+				ContextAt->TotalFreq += 3;
+			}
+			else {
+				InitFreq = 4 + (cf >= 9 * sf) + (cf >= 12 * sf) + (cf >= 15 * sf);
+				ContextAt->TotalFreq += InitFreq;
+			}
+
+			NewSym->Freq = InitFreq;
 			NewSym->Symbol = LastEncSym->Symbol;
-			ContextAt->TotalFreq += 1;
 		}
 
 		if (ContextAt)
