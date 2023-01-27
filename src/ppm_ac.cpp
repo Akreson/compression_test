@@ -14,7 +14,6 @@ class PPMByte
 	context* MinContext;
 	context_data** ContextStack;
 	context_data* LastEncSym;
-	context* Order0;
 
 	u8 InitEsc;
 	u16 OrderCount;
@@ -783,7 +782,7 @@ private:
 
 		ContextStack = SubAlloc.alloc<context_data*>(OrderCount);
 
-		Order0 = SubAlloc.alloc<context>(1);
+		context* Order0 = SubAlloc.alloc<context>(1);
 		Assert(Order0);
 		ZeroStruct(*Order0);
 
