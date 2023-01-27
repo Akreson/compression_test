@@ -202,17 +202,19 @@ private:
 				Context->Data[i] = Context->Data[i - 1];
 			}
 			*First = Temp;
+			LastEncSym = First;
 		}
 
+		u32 MaxCtxAdder = (Context != MaxContext) ? 1 : 0;
 		u32 EscFreq = Context->TotalFreq - First->Freq;
-		First->Freq = (First->Freq + 1) >> 1;
+		First->Freq = (First->Freq + MaxCtxAdder) >> 1;
 		Context->TotalFreq = First->Freq;
 
 		for (u32 SymbolIndex = 1; SymbolIndex < Context->SymbolCount; SymbolIndex++)
 		{
 			context_data* Symbol = Context->Data + SymbolIndex;
 			EscFreq -= Symbol->Freq;
-			Symbol->Freq = (Symbol->Freq + 1) >> 1;
+			Symbol->Freq = (Symbol->Freq + MaxCtxAdder) >> 1;
 			Context->TotalFreq += Symbol->Freq;
 
 			context_data* Prev = Symbol - 1;
@@ -235,6 +237,32 @@ private:
 					}
 					*Prev = Temp;
 				}
+			}
+		}
+
+		context_data* LastSym = Context->Data + (Context->SymbolCount - 1);
+		if (LastSym->Freq == 0)
+		{
+			u32 ToRemove = 0;
+			do
+			{
+				++ToRemove;
+				--LastSym;
+			} while (LastSym->Freq == 0);
+
+			EscFreq += ToRemove;
+			Context->SymbolCount -= ToRemove;
+
+			if (Context->SymbolCount == 1)
+			{
+				do
+				{
+					First->Freq -= (First->Freq >> 1);
+					EscFreq >>= 1;
+				} while (EscFreq > 1);
+				
+				// TODO: free unused 0 freq symbol memory
+				return;
 			}
 		}
 
@@ -282,8 +310,8 @@ private:
 		}
 		else
 		{
-			Result.Prob.hi = Result.Prob.scale;
 			SEE->LastUsed->Summ += Result.Prob.scale;
+			Result.Prob.hi = Result.Prob.scale;
 			Result.Symbol = EscapeSymbol;
 			LastMaskedCount = MinContext->SymbolCount;
 			updateExclusionData(MinContext);
