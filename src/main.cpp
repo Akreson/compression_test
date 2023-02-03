@@ -1,143 +1,68 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <cmath>
 #include "common.h"
 #include "suballoc.cpp"
-#include "ac.cpp"
-#include "static_ac.cpp"
-#include "ppm_ac.h"
-#include "ppm_see.cpp"
-#include "ppm_ac.cpp"
+
+#include "ac/ac.cpp"
+#include "ac/static_ac.cpp"
+#include "ac/ppm_ac.cpp"
+#include "ac_tests.cpp"
+
+#include "ans/rans_byte.cpp"
+#include "ans/static_basic_stats.cpp"
 
 void
-CompressFile(StaticByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
+TestBasicRansByte(file_data& InputFile)
 {
-	ArithEncoder Encoder(OutBuffer);
+	u64 BuffSize = InputFile.Size;
+	u8* OutBuff = new u8[BuffSize];
+	u8* DecBuff = new u8[BuffSize];
 
-	for (u32 i = 0; i <= InputFile.Size; ++i)
+	SymbolStats Stats;
+	Stats.countSymbol(InputFile.Data, InputFile.Size);
+	Stats.normalize(ProbScale);
+
+	u8 Cum2Sym[ProbScale];
+	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
 	{
-		prob SymbolProb = Model.getProb(InputFile.Data[i]);
-		Encoder.encode(SymbolProb);
-		Model.update(InputFile.Data[i]);
-	}
-
-	prob SymbolProb = Model.getEndStreamProb();
-	Encoder.encode(SymbolProb);
-}
-
-void 
-DecompressFile(StaticByteModel& Model, file_data& OutputFile, ByteVec& InputBuffer)
-{
-	ArithDecoder Decoder(InputBuffer);
-
-	u64 ByteIndex = 0;
-	for (;;)
-	{
-		u32 DecodedFreq = Decoder.getCurrFreq(Model.getCount());
-
-		u32 DecodedSymbol;
-		prob Prob = Model.getByteFromFreq(DecodedFreq, &DecodedSymbol);
-
-		if (DecodedSymbol == StaticByteModel::EndOfStreamSymbolIndex) break;
-
-		Decoder.updateDecodeRange(Prob);
-		Model.update(DecodedSymbol);
-
-		Assert(ByteIndex <= OutputFile.Size);
-		OutputFile.Data[ByteIndex++] = DecodedSymbol;
-	}
-}
-
-void
-TestStaticModel(file_data& InputFile)
-{
-	StaticByteModel Model;
-	ByteVec CompressBuffer;
-
-	CompressFile(Model, InputFile, CompressBuffer);
-	u64 CompressedSize = CompressBuffer.size();
-
-	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
-
-	Model.reset();
-
-	file_data OutputFile;
-	OutputFile.Size = InputFile.Size;
-	OutputFile.Data = new u8[OutputFile.Size];
-
-	DecompressFile(Model, OutputFile, CompressBuffer);
-
-	for (u32 i = 0; i <= InputFile.Size; ++i)
-	{
-		b32 cmp = InputFile.Data[i] == OutputFile.Data[i];
-		Assert(cmp);
-	}
-
-	delete[] OutputFile.Data;
-}
-
-void
-CompressFile(PPMByte& Model, file_data& InputFile, ByteVec& OutBuffer)
-{
-	ArithEncoder Encoder(OutBuffer);
-
-	for (u32 i = 0; i <= InputFile.Size; ++i)
-	{
-		Model.encode(Encoder, InputFile.Data[i]);
-
-		if (!(i & 0xffff))
+		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
 		{
-			//printf("%d %d %d %d\n", i, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
-			printf("%d\r", i);
+			Cum2Sym[j] = SymbolIndex;
 		}
 	}
 
-	Model.encodeEndOfStream(Encoder);
-}
+	RansByteEncoder Encoder;
+	Encoder.init();
 
-void
-DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file_data& InputFile)
-{
-	ArithDecoder Decoder(InputBuffer);
-
-	u64 ByteIndex = 0;
-	for (;;)
+	u8* Out = OutBuff + BuffSize;
+	for (u64 i = InputFile.Size; i > 0; i--)
 	{
-		u32 DecodedSymbol = Model.decode(Decoder);
-		if (DecodedSymbol == PPMByte::EscapeSymbol) break;
-
-		Assert(ByteIndex <= OutputFile.Size);
-		Assert(InputFile.Data[ByteIndex] == DecodedSymbol)
-		OutputFile.Data[ByteIndex++] = DecodedSymbol;
-
-		if (!(ByteIndex & 0xffff))
-		{
-			//printf("%d %d %d %d\r", ByteIndex, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
-			printf("%d\r", ByteIndex);
-		}
+		u8 Byte = InputFile.Data[i - 1];
+		Encoder.encode(&Out, Stats.CumFreq[Byte], Stats.Freq[Byte], ProbBit);
 	}
-}
+	Encoder.flush(&Out);
 
-void
-TestPPMModel(file_data& InputFile)
-{
-	u32 MemLimit = 20 << 20;
-	PPMByte PPMModel(4, MemLimit);
-	ByteVec CompressBuffer;
+	u8* DecodeBegin = Out;
 
-	CompressFile(PPMModel, InputFile, CompressBuffer);
-	u64 CompressedSize = CompressBuffer.size();
+	u64 CompressedSize = OutBuff + BuffSize - DecodeBegin;
 	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
-	printf("Sym: %.3f | Esc: %.3f", PPMModel.SymEnc, PPMModel.EscEnc);
 
-	PPMModel.reset();
+	RansByteDecoder Decoder;
+	Decoder.init(&DecodeBegin);
 
-#if 1
-	file_data OutputFile;
-	OutputFile.Size = InputFile.Size;
-	OutputFile.Data = new u8[OutputFile.Size];
+	for (u64 i = 0; i < BuffSize; i++)
+	{
+		u32 CumFreq = Decoder.decodeGet(ProbBit);
+		u32 Symbol = Cum2Sym[CumFreq];
 
-	DecompressFile(PPMModel, OutputFile, CompressBuffer, InputFile);
-
-	delete[] OutputFile.Data;
-#endif
+		Assert(InputFile.Data[i] == Symbol)
+		DecBuff[i] = Symbol;
+		Decoder.decodeAdvance(&DecodeBegin, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+	}
+	
+	delete[] OutBuff;
+	delete[] DecBuff;
 }
 
 int
@@ -152,7 +77,8 @@ main(int argc, char** argv)
 	file_data InputFile = ReadFile(argv[1]);
 
 	//TestStaticModel(InputFile);
-	TestPPMModel(InputFile);
+	//TestPPMModel(InputFile);
+	TestBasicRansByte(InputFile);
 
 	return 0;
 }

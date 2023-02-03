@@ -1,8 +1,6 @@
 #if !defined(COMMON_H)
 #define COMMON_H
 
-#define _CRT_SECURE_NO_WARNINGS
-
 #include <iostream>
 #include <fstream>
 #include <cstdio>
@@ -53,23 +51,6 @@ static constexpr u32 PtrAlign = sizeof(void*);
 static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
-
-static constexpr u32 CodeBit = 24;
-static constexpr u32 FreqBit = 15;
-static constexpr u32 FreqMaxBit = 14;
-static constexpr u32 CodeMaxValue = (1 << CodeBit) - 1;
-static constexpr u32 ProbMaxValue = (1 << FreqBit) - 1;
-static constexpr u32 FreqMaxValue = (1 << FreqMaxBit);
-static constexpr u32 OneFourth = (1 << (CodeBit - 2));
-static constexpr u32 OneHalf = OneFourth * 2;
-static constexpr u32 ThreeFourths = OneFourth * 3;
-
-struct prob
-{
-	u32 lo;
-	u32 hi;
-	u32 scale;
-};
 
 inline constexpr u32
 AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)

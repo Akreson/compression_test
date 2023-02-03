@@ -1,7 +1,5 @@
-//#include "ppm_ac.h"
-//#include "ppm_see.cpp"
-
-#include <cmath>
+#include "ppm_ac.h"
+#include "ppm_see.cpp"
 
 //ppmdf version of PPMD
 

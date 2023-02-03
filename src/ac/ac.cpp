@@ -1,3 +1,4 @@
+#include "ac_params.h"
 
 struct ArithEncoder
 {
@@ -15,6 +16,15 @@ public:
 		Bytes(OutBuffer), lo(0), hi(CodeMaxValue), PendingBits(0), BitBuff(0), BitAccumCount(8) {}
 
 	~ArithEncoder()
+	{
+		PendingBits++;
+		if (lo < OneFourth) writeBit(0);
+		else writeBit(1);
+
+		if (BitBuff) Bytes.push_back(BitBuff);
+	}
+
+	void flush()
 	{
 		PendingBits++;
 		if (lo < OneFourth) writeBit(0);
