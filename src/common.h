@@ -52,6 +52,25 @@ static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
 
+template<typename T>
+struct BitsIn
+{
+	static constexpr u32 Val = 0;
+};
+
+template<>
+struct BitsIn<u32>
+{
+	static constexpr u32 Val = 32;
+};
+
+template<>
+struct BitsIn<u64>
+{
+	static constexpr u32 Val = 64;
+};
+
+
 inline constexpr u32
 AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)
 {

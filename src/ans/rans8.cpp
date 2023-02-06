@@ -1,40 +1,38 @@
-static constexpr u32 ProbBit = 14;
-static constexpr u32 ProbScale = 1 << ProbBit;
-static constexpr u32 RansByteL = 1 << 24;
 
-//TODO: see if compiler with O2 will pass "this" to func
-struct RansByteEncoder
+static constexpr u32 Rans8L = 1 << 23;
+
+struct Rans8Encoder
 {
 	u32 State;
 
-	RansByteEncoder() = default;
+	Rans8Encoder() = default;
 
 	void inline init()
 	{
-		State = RansByteL;
+		State = Rans8L;
 	}
 
-	static inline u32 renorm(u32 UpdateState, u8** OutP, u32 Freq, u32 ScaleBit)
+	static inline u32 renorm(u32 StateToNorm, u8** OutP, u32 Freq, u32 ScaleBit)
 	{
-		u32 Max = ((RansByteL >> ScaleBit) << 8 ) * Freq;
-		if (UpdateState >= Max)
+		u32 Max = ((Rans8L >> ScaleBit) << 8) * Freq;
+		if (StateToNorm >= Max)
 		{
 			u8* Out = *OutP;
 			do
 			{
-				*--Out = UpdateState & 0xff;
-				UpdateState >>= 8;
-			} while (UpdateState >= Max);
+				*--Out = (u8)(StateToNorm & 0xff);
+				StateToNorm >>= 8;
+			} while (StateToNorm >= Max);
 
 			*OutP = Out;
 		}
 
-		return UpdateState;
+		return StateToNorm;
 	}
 
 	void encode(u8** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
-		u32 NormState = RansByteEncoder::renorm(State, OutP, Freq, ScaleBit);
+		u32 NormState = Rans8Encoder::renorm(State, OutP, Freq, ScaleBit);
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
 	}
 
@@ -53,11 +51,11 @@ struct RansByteEncoder
 	}
 };
 
-struct RansByteDecoder
+struct Rans8Decoder
 {
 	u32 State;
 
-	RansByteDecoder() = default;
+	Rans8Decoder() = default;
 
 	inline void init(u8** InP)
 	{
@@ -81,15 +79,14 @@ struct RansByteDecoder
 	inline void decodeAdvance(u8** InP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
 		u32 Mask = (1 << ScaleBit) - 1;
-		//u32 CurrState = State;
 		State = Freq * (State >> ScaleBit) + (State & Mask) - CumStart;
-		if (State < RansByteL)
+		if (State < Rans8L)
 		{
 			u8* In = *InP;
 			do
 			{
 				State = State << 8 | *In++;
-			} while (State < RansByteL);
+			} while (State < Rans8L);
 			*InP = In;
 		}
 	}
