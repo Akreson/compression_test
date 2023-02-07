@@ -49,6 +49,30 @@ struct Rans8Encoder
 
 		*OutP = Out;
 	}
+
+	static inline u32 renorm(u32 StateToNorm, u8** OutP, u32 Max)
+	{
+		if (StateToNorm >= Max)
+		{
+			u8* Out = *OutP;
+			do
+			{
+				*--Out = (u8)(StateToNorm & 0xff);
+				StateToNorm >>= 8;
+			} while (StateToNorm >= Max);
+
+			*OutP = Out;
+		}
+
+		return StateToNorm;
+	}
+
+	void encode(u8** OutP, rans_enc_sym32* Sym)
+	{
+		u32 NormState = Rans8Encoder::renorm(State, OutP, Sym->Max);
+		u32 q = (((u64)NormState * (u64)Sym->RcpFreq) >> 32) >> Sym->RcpShift;
+		State = NormState + Sym->Bias + q * Sym->CmplFreq;
+	}
 };
 
 struct Rans8Decoder
@@ -89,5 +113,10 @@ struct Rans8Decoder
 			} while (State < Rans8L);
 			*InP = In;
 		}
+	}
+
+	void inline decodeAdvance(u8** InP, rans_dec_sym32* Sym, u32 ScaleBit)
+	{
+		decodeAdvance(InP, Sym->CumStart, Sym->Freq, ScaleBit);
 	}
 };

@@ -70,6 +70,12 @@ struct BitsIn<u64>
 	static constexpr u32 Val = 64;
 };
 
+inline b32
+IsPowerOf2(u32 Value)
+{
+	b32 Result = !(Value & (Value - 1));
+	return Result;
+}
 
 inline constexpr u32
 AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)
