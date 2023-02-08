@@ -9,22 +9,6 @@
 #include <limits>
 #include <stdint.h>
 
-#if _MSC_VER
-#include <intrin.h>
-#else
-#error "Unsuported compiler"
-//#include <x86intrin.h>
-#endif
-
-#ifdef _DEBUG
-	//#define Assert(Expression) assert(Expression)
-	#define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
-#else
-	#define Assert(Expression)
-#endif
-
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -51,6 +35,30 @@ static constexpr u32 PtrAlign = sizeof(void*);
 static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
+
+#if _MSC_VER
+#include <intrin.h>
+
+static inline u64
+MulHi64(u64 a, u64 b)
+{
+	return __umulh(a, b);
+}
+
+#else
+#error "Unsuported compiler"
+//#include <x86intrin.h>
+#endif
+
+#ifdef _DEBUG
+	//#define Assert(Expression) assert(Expression)
+#define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
+#else
+#define Assert(Expression)
+#endif
+
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 
 template<typename T>
 struct BitsIn

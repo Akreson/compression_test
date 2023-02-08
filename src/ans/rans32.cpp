@@ -32,6 +32,14 @@ struct Rans32Encoder
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
 	}
 
+	void encode(u32** OutP, rans_enc_sym64* Sym, u32 ScaleBit)
+	{
+		u64 NormState = Rans32Encoder::renorm(State, OutP, Sym->Freq, ScaleBit);
+		
+		u64 q = MulHi64(NormState, Sym->RcpFreq) >> Sym->RcpShift;
+		State = NormState + Sym->Bias + q * Sym->CmplFreq;
+	}
+
 	void flush(u32** OutP)
 	{
 		u32* Out = *OutP;
@@ -77,5 +85,10 @@ struct Rans32Decoder
 			*InP += 1;
 			Assert(State >= Rans32L)
 		}
+	}
+
+	void inline decodeAdvance(u32** InP, rans_dec_sym64* Sym, u32 ScaleBit)
+	{
+		decodeAdvance(InP, Sym->CumStart, Sym->Freq, ScaleBit);
 	}
 };
