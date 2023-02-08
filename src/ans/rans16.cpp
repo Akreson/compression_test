@@ -78,4 +78,19 @@ struct Rans16Decoder
 			Assert(State >= Rans16L)
 		}
 	}
+
+	//TODO: see if split on decode+sym_get and renorm give a boost in interleaved mod
+	template<u32 N>
+	inline void decodeAdvance(u16** InP, rans_sym_table<N>& Tab, u32 CumFreqBound, u32 ScaleBit)
+	{
+		u32 Index = State & (CumFreqBound - 1);
+		State = Tab.Slot[Index].Freq * (State >> ScaleBit) + Tab.Slot[Index].Bias;
+
+		if (State < Rans16L)
+		{
+			State = (State << 16) | **InP;
+			*InP += 1;
+			Assert(State >= Rans16L)
+		}
+	}
 };

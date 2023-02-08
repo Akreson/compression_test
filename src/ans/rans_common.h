@@ -31,7 +31,39 @@ struct rans_dec_sym64
 	u32 Freq;
 };
 
-static inline void
+union rans_sym_slot
+{
+	u32 Val;
+	struct
+	{
+		u16 Freq;
+		u16 Bias;
+	};
+};
+
+template<u32 N>
+struct rans_sym_table
+{
+	rans_sym_slot Slot[N];
+	u8 Slot2Sym[N];
+};
+
+template<u32 N> inline void
+RansTableInitSym(rans_sym_table<N>& Tab, u8 Sym, u32 CumStart, u32 Freq)
+{
+	Assert(Freq < N);
+	Assert(CumStart <= N);
+
+	for (u32 i = 0; i < Freq; i++)
+	{
+		u32 Index = CumStart + i;
+		Tab.Slot2Sym[Index] = Sym;
+		Tab.Slot[Index].Freq = (u16)Freq;
+		Tab.Slot[Index].Bias = (u16)i;
+	}
+}
+
+inline void
 RansEncSymInit(rans_enc_sym32* Sym, u32 CumStart, u32 Freq, u32 ScaleBit, u32 L, u32 NormStep)
 {
 	Assert(IsPowerOf2(NormStep));
@@ -61,7 +93,7 @@ RansEncSymInit(rans_enc_sym32* Sym, u32 CumStart, u32 Freq, u32 ScaleBit, u32 L,
 	}
 }
 
-static inline void
+inline void
 RansDecSymInit(rans_dec_sym32* DecSym, u32 CumStart, u32 Freq)
 {
 	Assert(CumStart <= (1 << 16));
@@ -71,7 +103,7 @@ RansDecSymInit(rans_dec_sym32* DecSym, u32 CumStart, u32 Freq)
 	DecSym->Freq = (u16)Freq;
 }
 
-static inline void
+inline void
 RansEncSymInit(rans_enc_sym64* Sym, u32 CumStart, u32 Freq, u32 ScaleBit)
 {
 	Assert(ScaleBit <= 31);
@@ -108,7 +140,7 @@ RansEncSymInit(rans_enc_sym64* Sym, u32 CumStart, u32 Freq, u32 ScaleBit)
 	}
 }
 
-static inline void
+inline void
 RansDecSymInit(rans_dec_sym64* DecSym, u32 CumStart, u32 Freq)
 {
 	Assert(CumStart <= (1 << 16));

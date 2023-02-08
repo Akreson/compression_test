@@ -267,13 +267,11 @@ TestEncodeRans16(file_data& InputFile)
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
 	Stats.normalize(ProbScale);
 
-	u8 Cum2Sym[ProbScale];
-	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
+	rans_sym_table<ProbScale> Tab;
+
+	for (u32 i = 0; i < 256; i++)
 	{
-		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
-		{
-			Cum2Sym[j] = SymbolIndex;
-		}
+		RansTableInitSym(Tab, i, Stats.CumFreq[i], Stats.Freq[i]);
 	}
 
 	Rans16Encoder Encoder;
@@ -297,11 +295,11 @@ TestEncodeRans16(file_data& InputFile)
 	for (u64 i = 0; i < InputFile.Size; i++)
 	{
 		u32 CumFreq = Decoder.decodeGet(ProbBit);
-		u32 Symbol = Cum2Sym[CumFreq];
+		u32 Symbol = Tab.Slot2Sym[CumFreq];
 
 		Assert(InputFile.Data[i] == Symbol);
 		DecBuff[i] = Symbol;
-		Decoder.decodeAdvance(&DecodeBegin, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		Decoder.decodeAdvance(&DecodeBegin, Tab, ProbScale, ProbBit);
 	}
 
 	delete[] OutBuff;
