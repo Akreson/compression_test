@@ -26,13 +26,13 @@ struct Rans32Encoder
 		return StateToNorm;
 	}
 
-	void encode(u32** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
+	void inline encode(u32** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
 		u64 NormState = Rans32Encoder::renorm(State, OutP, Freq, ScaleBit);
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
 	}
 
-	void encode(u32** OutP, rans_enc_sym64* Sym, u32 ScaleBit)
+	void inline encode(u32** OutP, rans_enc_sym64* Sym, u32 ScaleBit)
 	{
 		u64 NormState = Rans32Encoder::renorm(State, OutP, Sym->Freq, ScaleBit);
 		
@@ -60,7 +60,7 @@ struct Rans32Decoder
 
 	inline void init(u32** InP)
 	{
-		uint32_t* In = *InP;
+		u32* In = *InP;
 
 		State = (u64)In[0] << 0;
 		State |= (u64)In[1] << 32;

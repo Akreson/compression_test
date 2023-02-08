@@ -11,12 +11,16 @@
 
 #include "ans/rans_common.h"
 #include "ans/rans8.cpp"
+#include "ans/rans16.cpp"
 #include "ans/rans32.cpp"
 #include "ans/static_basic_stats.cpp"
 
 void
 TestBasicRans8(file_data& InputFile)
 {
+	static constexpr u32 ProbBit = 14;
+	static constexpr u32 ProbScale = 1 << ProbBit;
+
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
@@ -69,6 +73,9 @@ TestBasicRans8(file_data& InputFile)
 void
 TestBasicRans32(file_data& InputFile)
 {
+	static constexpr u32 ProbBit = 14;
+	static constexpr u32 ProbScale = 1 << ProbBit;
+
 	u64 BuffSize = AlignSizeForwad(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
@@ -121,6 +128,9 @@ TestBasicRans32(file_data& InputFile)
 void
 TestFastEncodeRans8(file_data& InputFile)
 {
+	static constexpr u32 ProbBit = 14;
+	static constexpr u32 ProbScale = 1 << ProbBit;
+
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
@@ -182,6 +192,9 @@ TestFastEncodeRans8(file_data& InputFile)
 void
 TestFastEncodeRans32(file_data& InputFile)
 {
+	static constexpr u32 ProbBit = 14;
+	static constexpr u32 ProbScale = 1 << ProbBit;
+
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
@@ -240,6 +253,61 @@ TestFastEncodeRans32(file_data& InputFile)
 	delete[] DecBuff;
 }
 
+void 
+TestEncodeRans16(file_data& InputFile)
+{
+	static constexpr u32 ProbBit = 12;
+	static constexpr u32 ProbScale = 1 << ProbBit;
+
+	u64 BuffSize = AlignSizeForwad(InputFile.Size);
+	u8* OutBuff = new u8[BuffSize];
+	u8* DecBuff = new u8[BuffSize];
+
+	SymbolStats Stats;
+	Stats.countSymbol(InputFile.Data, InputFile.Size);
+	Stats.normalize(ProbScale);
+
+	u8 Cum2Sym[ProbScale];
+	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
+	{
+		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
+		{
+			Cum2Sym[j] = SymbolIndex;
+		}
+	}
+
+	Rans16Encoder Encoder;
+	Encoder.init();
+
+	u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
+	for (u64 i = InputFile.Size; i > 0; i--)
+	{
+		u8 Symbol = InputFile.Data[i - 1];
+		Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+	}
+	Encoder.flush(&Out);
+
+	u16* DecodeBegin = Out;
+	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+
+	Rans16Decoder Decoder;
+	Decoder.init(&DecodeBegin);
+
+	for (u64 i = 0; i < InputFile.Size; i++)
+	{
+		u32 CumFreq = Decoder.decodeGet(ProbBit);
+		u32 Symbol = Cum2Sym[CumFreq];
+
+		Assert(InputFile.Data[i] == Symbol);
+		DecBuff[i] = Symbol;
+		Decoder.decodeAdvance(&DecodeBegin, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+	}
+
+	delete[] OutBuff;
+	delete[] DecBuff;
+}
+
 int
 main(int argc, char** argv)
 {
@@ -257,7 +325,8 @@ main(int argc, char** argv)
 	//TestBasicRans8(InputFile);
 	//TestBasicRans32(InputFile);
 	//TestFastEncodeRans8(InputFile);
-	TestFastEncodeRans32(InputFile);
+	//TestFastEncodeRans32(InputFile);
+	TestEncodeRans16(InputFile);
 
 	return 0;
 }
