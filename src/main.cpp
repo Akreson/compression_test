@@ -134,7 +134,7 @@ TestBasicRans32(file_data& InputFile)
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
-	u64 BuffSize = AlignSizeForwad(InputFile.Size);
+	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
@@ -432,7 +432,7 @@ TestEncodeRans16(file_data& InputFile)
 	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
-	u64 BuffSize = AlignSizeForwad(InputFile.Size);
+	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 

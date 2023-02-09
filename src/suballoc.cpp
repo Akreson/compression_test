@@ -27,8 +27,8 @@ struct free_mem_block
 
 class StaticSubAlloc
 {
-	static constexpr u32 MemBlockSize = AlignSizeForwad(sizeof(mem_block));
-	static constexpr u32 FreeMemBlockSize = AlignSizeForwad(sizeof(free_mem_block));
+	static constexpr u32 MemBlockSize = AlignSizeForward(sizeof(mem_block));
+	static constexpr u32 FreeMemBlockSize = AlignSizeForward(sizeof(free_mem_block));
 	static constexpr u32 MaxBlockFreeSize = std::numeric_limits<u32>::max() >> 2;
 
 	void* Memory;
@@ -61,8 +61,8 @@ public:
 
 	void init(u64 SizeToReserve, u32 MinAllocSize)
 	{
-		MinAlloc = AlignSizeForwad(MinAllocSize, 2);
-		MinUse = AlignSizeForwad(MinAlloc + MemBlockSize);
+		MinAlloc = AlignSizeForward(MinAllocSize, 2);
+		MinUse = AlignSizeForward(MinAlloc + MemBlockSize);
 
 		if (MinUse < FreeMemBlockSize)
 		{

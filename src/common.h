@@ -111,7 +111,7 @@ IsPowerOf2(u32 Value)
 }
 
 inline constexpr u32
-AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)
+AlignSizeForward(u32 Size, u32 Alignment = PtrAlign)
 {
 	Assert(!(Alignment & (Alignment - 1)));
 
