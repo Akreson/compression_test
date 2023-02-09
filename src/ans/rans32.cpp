@@ -91,4 +91,30 @@ struct Rans32Decoder
 	{
 		decodeAdvance(InP, Sym->CumStart, Sym->Freq, ScaleBit);
 	}
+
+	template<u32 N>
+	inline u8 decodeSym(rans_sym_table<N>& Tab, u32 CumFreqBound, u32 ScaleBit)
+	{
+		Assert(IsPowerOf2(CumFreqBound));
+		u32 Slot = State & (CumFreqBound - 1);
+
+		/*u32 Val = Tab.Slot[Slot].Val;
+		u32 Freq = Val & 0xffff;
+		u32 Bias = Val >> 16;
+		State = Freq * (State >> ScaleBit) + Bias;*/
+
+		State = Tab.Slot[Slot].Freq * (State >> ScaleBit) + Tab.Slot[Slot].Bias;
+		u8 Sym = Tab.Slot2Sym[Slot];
+		return Sym;
+	}
+
+	inline void decodeRenorm(u32** InP)
+	{
+		if (State < Rans32L)
+		{
+			State = (State << 32) | **InP;
+			*InP += 1;
+			Assert(State >= Rans32L)
+		}
+	}
 };
