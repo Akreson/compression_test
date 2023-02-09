@@ -36,20 +36,6 @@ static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
 
-#if _MSC_VER
-#include <intrin.h>
-
-static inline u64
-MulHi64(u64 a, u64 b)
-{
-	return __umulh(a, b);
-}
-
-#else
-#error "Unsuported compiler"
-//#include <x86intrin.h>
-#endif
-
 #ifdef _DEBUG
 	//#define Assert(Expression) assert(Expression)
 #define Assert(Expression) if (!(Expression)) *((int *)0) = 0;
@@ -59,24 +45,63 @@ MulHi64(u64 a, u64 b)
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
-
-template<typename T>
-struct BitsIn
+struct AccumTime
 {
-	static constexpr u32 Val = 0;
+	u64 Clock;
+	f64 Time;
+
+	AccumTime()
+	{
+		reset();
+	};
+
+	void reset()
+	{
+		Clock = 0;
+		Time = 0.0;
+	}
 };
 
-template<>
-struct BitsIn<u32>
+struct bit_scan_result
 {
-	static constexpr u32 Val = 32;
+	u16 Index;
+	u16 Succes;
 };
 
-template<>
-struct BitsIn<u64>
+#if _MSC_VER
+
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#include <intrin.h>
+
+double timer()
 {
-	static constexpr u32 Val = 64;
-};
+	LARGE_INTEGER ctr, freq;
+	QueryPerformanceCounter(&ctr);
+	QueryPerformanceFrequency(&freq);
+	return 1.0 * ctr.QuadPart / freq.QuadPart;
+}
+
+static inline u64
+MulHi64(u64 a, u64 b)
+{
+	return __umulh(a, b);
+}
+
+inline bit_scan_result
+FindMostSignificantSetBit(u32 Source)
+{
+	bit_scan_result Result;
+	Result.Succes = _BitScanReverse((unsigned long*)&Result.Index, Source);
+
+	return Result;
+}
+
+#else
+#error "Unsuported compiler"
+//#include <x86intrin.h>
+#endif
 
 inline b32
 IsPowerOf2(u32 Value)
@@ -96,21 +121,6 @@ AlignSizeForwad(u32 Size, u32 Alignment = PtrAlign)
 	u32 AlignOffset = OffsetFromMask ? (Alignment - OffsetFromMask) : 0;
 
 	Result += AlignOffset;
-	return Result;
-}
-
-struct bit_scan_result
-{
-	u16 Index;
-	u16 Succes;
-};
-
-inline bit_scan_result
-FindMostSignificantSetBit(u32 Source)
-{
-	bit_scan_result Result;
-	Result.Succes = _BitScanReverse((unsigned long*)&Result.Index, Source);
-
 	return Result;
 }
 

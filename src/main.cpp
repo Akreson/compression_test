@@ -15,9 +15,28 @@
 #include "ans/rans32.cpp"
 #include "ans/static_basic_stats.cpp"
 
+inline void
+PrintRansPerfStats(u64 Clocks, f64 Time, u64 DataSize)
+{
+	printf(" %llu clocks, %.1f clocks/symbol (%5.1f MiB/s)\n", Clocks, 1.0 * Clocks / DataSize, 1.0 * DataSize / (Time * 1048576.0));
+}
+
+inline void
+PrintAvgRansPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
+{
+	Accum.Clock /= RunsCount;
+	Accum.Time /= (f64)RunsCount;
+	printf(" avg of %d runs ", RunsCount);
+	PrintRansPerfStats(Accum.Clock, Accum.Time, DataSize);
+	printf("\n");
+}
+
 void
 TestBasicRans8(file_data& InputFile)
 {
+	u32 RunsCount = 5;
+	printf("TestBasicRans8\n");
+
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
@@ -38,34 +57,70 @@ TestBasicRans8(file_data& InputFile)
 		}
 	}
 
-	Rans8Encoder Encoder;
-	Encoder.init();
+	u8* DecodeBegin = nullptr;
 
-	u8* Out = OutBuff + BuffSize;
-	for (u64 i = InputFile.Size; i > 0; i--)
+	AccumTime Accum;
+	printf(" rANS encode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u8 Symbol = InputFile.Data[i - 1];
-		Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
-	}
-	Encoder.flush(&Out);
+		f64 EncStartTime = timer();
+		u64 EncStartClock = __rdtsc();
 
-	u8* DecodeBegin = Out;
+		Rans8Encoder Encoder;
+		Encoder.init();
+
+		u8* Out = OutBuff + BuffSize;
+		for (u64 i = InputFile.Size; i > 0; i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		}
+		Encoder.flush(&Out);
+		DecodeBegin = Out;
+
+		u64 EncClocks = __rdtsc() - EncStartClock;
+		f64 EncTime = timer() - EncStartTime;
+		Accum.Clock += EncClocks;
+		Accum.Time += EncTime;
+		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	Accum.reset();
+
 	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
-	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
 
-	Rans8Decoder Decoder;
-	Decoder.init(&DecodeBegin);
-
-	for (u64 i = 0; i < InputFile.Size; i++)
+	printf(" rANS decode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u32 CumFreq = Decoder.decodeGet(ProbBit);
-		u32 Symbol = Cum2Sym[CumFreq];
+		f64 DecStartTime = timer();
+		u64 DecStartClock = __rdtsc();
 
-		Assert(InputFile.Data[i] == Symbol);
-		DecBuff[i] = Symbol;
-		Decoder.decodeAdvance(&DecodeBegin, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		u8* In = DecodeBegin;
+
+		Rans8Decoder Decoder;
+		Decoder.init(&In);
+
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 Symbol = Cum2Sym[CumFreq];
+
+			Assert(InputFile.Data[i] == Symbol);
+			DecBuff[i] = Symbol;
+			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		}
+
+		u64 DecClocks = __rdtsc() - DecStartClock;
+		f64 DecTime = timer() - DecStartTime;
+		Accum.Clock += DecClocks;
+		Accum.Time += DecTime;
+		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
-	
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+
 	delete[] OutBuff;
 	delete[] DecBuff;
 }
@@ -73,6 +128,9 @@ TestBasicRans8(file_data& InputFile)
 void
 TestBasicRans32(file_data& InputFile)
 {
+	u32 RunsCount = 5;
+	printf("TestBasicRans32\n");
+
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
@@ -93,33 +151,68 @@ TestBasicRans32(file_data& InputFile)
 		}
 	}
 
-	Rans32Encoder Encoder;
-	Encoder.init();
+	u32* DecodeBegin = nullptr;
 
-	u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
-	for (u64 i = InputFile.Size; i > 0; i--)
+	AccumTime Accum;
+	printf(" rANS encode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u8 Symbol = InputFile.Data[i - 1];
-		Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
-	}
-	Encoder.flush(&Out);
+		f64 EncStartTime = timer();
+		u64 EncStartClock = __rdtsc();
 
-	u32* DecodeBegin = Out;
+		Rans32Encoder Encoder;
+		Encoder.init();
+
+		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+		for (u64 i = InputFile.Size; i > 0; i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		}
+		Encoder.flush(&Out);
+		DecodeBegin = Out;
+
+		u64 EncClocks = __rdtsc() - EncStartClock;
+		f64 EncTime = timer() - EncStartTime;
+		Accum.Clock += EncClocks;
+		Accum.Time += EncTime;
+		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	Accum.reset();
+
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
 
-	Rans32Decoder Decoder;
-	Decoder.init(&DecodeBegin);
-
-	for (u64 i = 0; i < InputFile.Size; i++)
+	printf(" rANS decode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u32 CumFreq = Decoder.decodeGet(ProbBit);
-		u32 Symbol = Cum2Sym[CumFreq];
+		f64 DecStartTime = timer();
+		u64 DecStartClock = __rdtsc();
 
-		Assert(InputFile.Data[i] == Symbol);
-		DecBuff[i] = Symbol;
-		Decoder.decodeAdvance(&DecodeBegin, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		u32* In = DecodeBegin;
+		Rans32Decoder Decoder;
+		Decoder.init(&In);
+
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 Symbol = Cum2Sym[CumFreq];
+
+			Assert(InputFile.Data[i] == Symbol);
+			DecBuff[i] = Symbol;
+			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		}
+
+		u64 DecClocks = __rdtsc() - DecStartClock;
+		f64 DecTime = timer() - DecStartTime;
+		Accum.Clock += DecClocks;
+		Accum.Time += DecTime;
+		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -128,6 +221,9 @@ TestBasicRans32(file_data& InputFile)
 void
 TestFastEncodeRans8(file_data& InputFile)
 {
+	u32 RunsCount = 5;
+	printf("TestFastEncodeRans8\n");
+
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
@@ -156,34 +252,69 @@ TestFastEncodeRans8(file_data& InputFile)
 		RansDecSymInit(&DecSymArr[i], Stats.CumFreq[i], Stats.Freq[i]);
 	}
 
-	Rans8Encoder Encoder;
-	Encoder.init();
+	u8* DecodeBegin = nullptr;
 
-	u8* Out = OutBuff + BuffSize;
-	for (u64 i = InputFile.Size; i > 0; i--)
+	AccumTime Accum;
+	printf(" rANS encode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u8 Symbol = InputFile.Data[i - 1];
-		Encoder.encode(&Out, &EncSymArr[Symbol]);
-	}
-	Encoder.flush(&Out);
+		f64 EncStartTime = timer();
+		u64 EncStartClock = __rdtsc();
 
-	u8* DecodeBegin = Out;
+		Rans8Encoder Encoder;
+		Encoder.init();
+
+		u8* Out = OutBuff + BuffSize;
+		for (u64 i = InputFile.Size; i > 0; i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			Encoder.encode(&Out, &EncSymArr[Symbol]);
+		}
+		Encoder.flush(&Out);
+		DecodeBegin = Out;
+
+		u64 EncClocks = __rdtsc() - EncStartClock;
+		f64 EncTime = timer() - EncStartTime;
+		Accum.Clock += EncClocks;
+		Accum.Time += EncTime;
+		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	Accum.reset();
+
 	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
-	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
 
-	Rans8Decoder Decoder;
-	Decoder.init(&DecodeBegin);
-
-	for (u64 i = 0; i < InputFile.Size; i++)
+	printf(" rANS decode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u32 CumFreq = Decoder.decodeGet(ProbBit);
-		u32 Symbol = Cum2Sym[CumFreq];
+		f64 DecStartTime = timer();
+		u64 DecStartClock = __rdtsc();
 
-		Assert(InputFile.Data[i] == Symbol);
-		DecBuff[i] = Symbol;
+		u8* In = DecodeBegin;
+		Rans8Decoder Decoder;
+		Decoder.init(&In);
 
-		Decoder.decodeAdvance(&DecodeBegin, &DecSymArr[Symbol], ProbBit);
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 Symbol = Cum2Sym[CumFreq];
+
+			Assert(InputFile.Data[i] == Symbol);
+			DecBuff[i] = Symbol;
+
+			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], ProbBit);
+		}
+
+		u64 DecClocks = __rdtsc() - DecStartClock;
+		f64 DecTime = timer() - DecStartTime;
+		Accum.Clock += DecClocks;
+		Accum.Time += DecTime;
+		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -192,6 +323,9 @@ TestFastEncodeRans8(file_data& InputFile)
 void
 TestFastEncodeRans32(file_data& InputFile)
 {
+	u32 RunsCount = 5;
+	printf("TestFastEncodeRans32\n");
+
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
@@ -220,34 +354,70 @@ TestFastEncodeRans32(file_data& InputFile)
 		RansDecSymInit(&DecSymArr[i], Stats.CumFreq[i], Stats.Freq[i]);
 	}
 
-	Rans32Encoder Encoder;
-	Encoder.init();
+	u32* DecodeBegin = nullptr;
 
-	u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
-	for (u64 i = InputFile.Size; i > 0; i--)
+	AccumTime Accum;
+	printf(" rANS encode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u8 Symbol = InputFile.Data[i - 1];
-		Encoder.encode(&Out, &EncSymArr[Symbol], ProbBit);
-	}
-	Encoder.flush(&Out);
+		f64 EncStartTime = timer();
+		u64 EncStartClock = __rdtsc();
 
-	u32* DecodeBegin = Out;
+		Rans32Encoder Encoder;
+		Encoder.init();
+
+		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+		for (u64 i = InputFile.Size; i > 0; i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			Encoder.encode(&Out, &EncSymArr[Symbol], ProbBit);
+		}
+		Encoder.flush(&Out);
+		DecodeBegin = Out;
+
+		u64 EncClocks = __rdtsc() - EncStartClock;
+		f64 EncTime = timer() - EncStartTime;
+		Accum.Clock += EncClocks;
+		Accum.Time += EncTime;
+		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	Accum.reset();
+
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
 
-	Rans32Decoder Decoder;
-	Decoder.init(&DecodeBegin);
-
-	for (u64 i = 0; i < InputFile.Size; i++)
+	printf(" rANS decode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u32 CumFreq = Decoder.decodeGet(ProbBit);
-		u32 Symbol = Cum2Sym[CumFreq];
+		f64 DecStartTime = timer();
+		u64 DecStartClock = __rdtsc();
 
-		Assert(InputFile.Data[i] == Symbol);
-		DecBuff[i] = Symbol;
+		u32* In = DecodeBegin;
 
-		Decoder.decodeAdvance(&DecodeBegin, &DecSymArr[Symbol], ProbBit);
+		Rans32Decoder Decoder;
+		Decoder.init(&In);
+
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 Symbol = Cum2Sym[CumFreq];
+
+			Assert(InputFile.Data[i] == Symbol);
+			DecBuff[i] = Symbol;
+
+			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], ProbBit);
+		}
+
+		u64 DecClocks = __rdtsc() - DecStartClock;
+		f64 DecTime = timer() - DecStartTime;
+		Accum.Clock += DecClocks;
+		Accum.Time += DecTime;
+		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -256,6 +426,9 @@ TestFastEncodeRans32(file_data& InputFile)
 void 
 TestEncodeRans16(file_data& InputFile)
 {
+	u32 RunsCount = 5;
+	printf("TestEncodeRans16\n");
+
 	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
@@ -274,33 +447,69 @@ TestEncodeRans16(file_data& InputFile)
 		RansTableInitSym(Tab, i, Stats.CumFreq[i], Stats.Freq[i]);
 	}
 
-	Rans16Encoder Encoder;
-	Encoder.init();
+	u16* DecodeBegin = nullptr;
 
-	u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
-	for (u64 i = InputFile.Size; i > 0; i--)
+	AccumTime Accum;
+	printf(" rANS encode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u8 Symbol = InputFile.Data[i - 1];
-		Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
-	}
-	Encoder.flush(&Out);
+		f64 EncStartTime = timer();
+		u64 EncStartClock = __rdtsc();
 
-	u16* DecodeBegin = Out;
+		Rans16Encoder Encoder;
+		Encoder.init();
+
+		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
+		for (u64 i = InputFile.Size; i > 0; i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+		}
+		Encoder.flush(&Out);
+		DecodeBegin = Out;
+
+		u64 EncClocks = __rdtsc() - EncStartClock;
+		f64 EncTime = timer() - EncStartTime;
+		Accum.Clock += EncClocks;
+		Accum.Time += EncTime;
+		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	Accum.reset();
+
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
 
-	Rans16Decoder Decoder;
-	Decoder.init(&DecodeBegin);
-
-	for (u64 i = 0; i < InputFile.Size; i++)
+	printf(" rANS decode\n");
+	for (u32 Run = 0; Run < RunsCount; Run++)
 	{
-		u32 CumFreq = Decoder.decodeGet(ProbBit);
-		u32 Symbol = Tab.Slot2Sym[CumFreq];
+		f64 DecStartTime = timer();
+		u64 DecStartClock = __rdtsc();
 
-		Assert(InputFile.Data[i] == Symbol);
-		DecBuff[i] = Symbol;
-		Decoder.decodeAdvance(&DecodeBegin, Tab, ProbScale, ProbBit);
+		u16* In = DecodeBegin;
+
+		Rans16Decoder Decoder;
+		Decoder.init(&In);
+
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 Symbol = Tab.Slot2Sym[CumFreq];
+
+			Assert(InputFile.Data[i] == Symbol);
+			DecBuff[i] = Symbol;
+			Decoder.decodeAdvance(&In, Tab, ProbScale, ProbBit);
+		}
+
+		u64 DecClocks = __rdtsc() - DecStartClock;
+		f64 DecTime = timer() - DecStartTime;
+		Accum.Clock += DecClocks;
+		Accum.Time += DecTime;
+		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
+
+	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -320,10 +529,10 @@ main(int argc, char** argv)
 	//TestStaticModel(InputFile);
 	//TestPPMModel(InputFile);
 	
-	//TestBasicRans8(InputFile);
-	//TestBasicRans32(InputFile);
-	//TestFastEncodeRans8(InputFile);
-	//TestFastEncodeRans32(InputFile);
+	TestBasicRans8(InputFile);
+	TestBasicRans32(InputFile);
+	TestFastEncodeRans8(InputFile);
+	TestFastEncodeRans32(InputFile);
 	TestEncodeRans16(InputFile);
 
 	return 0;
