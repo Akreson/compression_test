@@ -28,6 +28,12 @@ PrintAvgRansPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
 	Accum.Time /= (f64)RunsCount;
 	printf(" avg of %d runs ", RunsCount);
 	PrintRansPerfStats(Accum.Clock, Accum.Time, DataSize);
+#if 1
+	printf(" min of %d runs ", RunsCount);
+	PrintRansPerfStats(Accum.MinClock, Accum.MinTime, DataSize);
+	printf(" max of %d runs ", RunsCount);
+	PrintRansPerfStats(Accum.MaxClock, Accum.MaxTime, DataSize);
+#endif
 	printf("\n");
 }
 
@@ -82,6 +88,7 @@ TestBasicRans8(file_data& InputFile)
 		f64 EncTime = timer() - EncStartTime;
 		Accum.Clock += EncClocks;
 		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -114,8 +121,7 @@ TestBasicRans8(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -174,8 +180,7 @@ TestBasicRans32(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -207,8 +212,7 @@ TestBasicRans32(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -275,8 +279,7 @@ TestFastEncodeRans8(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -309,8 +312,7 @@ TestFastEncodeRans8(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -377,8 +379,7 @@ TestFastEncodeRans32(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -412,8 +413,7 @@ TestFastEncodeRans32(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -470,8 +470,7 @@ TestTableDecodeRans16(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -506,6 +505,7 @@ TestTableDecodeRans16(file_data& InputFile)
 		f64 DecTime = timer() - DecStartTime;
 		Accum.Clock += DecClocks;
 		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -573,8 +573,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -619,8 +618,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -688,8 +686,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -734,8 +731,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -797,8 +793,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
+		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -844,8 +839,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
+		Accum.update(DecClocks, DecTime);
 		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 

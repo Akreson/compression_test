@@ -35,6 +35,9 @@ static constexpr u32 PtrAlign = sizeof(void*);
 static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
+static constexpr u32 MaxUInt64 = std::numeric_limits<u64>::max();
+
+static constexpr f64 MaxF64 = std::numeric_limits<f64>::max();
 
 #ifdef _DEBUG
 	//#define Assert(Expression) assert(Expression)
@@ -50,15 +53,39 @@ struct AccumTime
 	u64 Clock;
 	f64 Time;
 
+	u64 MinClock;
+	f64 MinTime;
+
+	u64 MaxClock;
+	f64 MaxTime;
+
 	AccumTime()
 	{
 		reset();
 	};
 
+	void update(u64 StepClock, f64 StepTime)
+	{
+		Clock += StepClock;
+		Time += StepTime;
+
+		MinClock = MinClock > StepClock ? StepClock : MinClock;
+		MinTime = MinTime > StepTime ? StepTime : MinTime;
+
+		MaxClock = MaxClock > StepClock ? MaxClock : StepClock;
+		MaxTime = MaxTime > StepTime ? MaxTime : StepTime;
+	}
+
 	void reset()
 	{
 		Clock = 0;
 		Time = 0.0;
+
+		MinClock = MaxUInt64;
+		MinTime = MaxF64;
+
+		MaxClock = 0;
+		MaxTime = 0;
 	}
 };
 
@@ -69,6 +96,8 @@ struct bit_scan_result
 };
 
 #if _MSC_VER
+
+#define ALIGN(N) __declspec(align(N))
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -110,12 +139,12 @@ IsPowerOf2(u32 Value)
 	return Result;
 }
 
-inline constexpr u32
-AlignSizeForward(u32 Size, u32 Alignment = PtrAlign)
+inline constexpr u64
+AlignSizeForward(u64 Size, u32 Alignment = PtrAlign)
 {
 	Assert(!(Alignment & (Alignment - 1)));
 
-	u32 Result = Size;
+	u64 Result = Size;
 	u32 AlignMask = Alignment - 1;
 	u32 OffsetFromMask = (Size & AlignMask);
 	u32 AlignOffset = OffsetFromMask ? (Alignment - OffsetFromMask) : 0;
