@@ -1,10 +1,10 @@
 static constexpr u32 Rans16L = 1 << 16;
 
-struct Rans16Encoder
+struct Rans16Enc
 {
 	u32 State;
 
-	Rans16Encoder() = default;
+	Rans16Enc() = default;
 
 	void inline init()
 	{
@@ -27,7 +27,7 @@ struct Rans16Encoder
 
 	void inline encode(u16** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
-		u32 NormState = Rans16Encoder::renorm(State, OutP, Freq, ScaleBit);
+		u32 NormState = Rans16Enc::renorm(State, OutP, Freq, ScaleBit);
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
 	}
 
@@ -44,11 +44,11 @@ struct Rans16Encoder
 	}
 };
 
-struct Rans16Decoder
+struct Rans16Dec
 {
 	u32 State;
 
-	Rans16Decoder() = default;
+	Rans16Dec() = default;
 
 	inline void init(u16** InP)
 	{

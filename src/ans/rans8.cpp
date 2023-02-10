@@ -1,11 +1,11 @@
 
 static constexpr u32 Rans8L = 1 << 23;
 
-struct Rans8Encoder
+struct Rans8Enc
 {
 	u32 State;
 
-	Rans8Encoder() = default;
+	Rans8Enc() = default;
 
 	void inline init()
 	{
@@ -32,7 +32,7 @@ struct Rans8Encoder
 
 	void inline encode(u8** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
-		u32 NormState = Rans8Encoder::renorm(State, OutP, Freq, ScaleBit);
+		u32 NormState = Rans8Enc::renorm(State, OutP, Freq, ScaleBit);
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
 	}
 
@@ -55,7 +55,7 @@ struct Rans8Encoder
 
 	void inline encode(u8** OutP, rans_enc_sym32* Sym)
 	{
-		u32 NormState = Rans8Encoder::renorm(State, OutP, Sym->Max);
+		u32 NormState = Rans8Enc::renorm(State, OutP, Sym->Max);
 		u32 q = (((u64)NormState * (u64)Sym->RcpFreq) >> 32) >> Sym->RcpShift;
 		State = NormState + Sym->Bias + q * Sym->CmplFreq;
 	}
@@ -75,11 +75,11 @@ struct Rans8Encoder
 	}
 };
 
-struct Rans8Decoder
+struct Rans8Dec
 {
 	u32 State;
 
-	Rans8Decoder() = default;
+	Rans8Dec() = default;
 
 	inline void init(u8** InP)
 	{

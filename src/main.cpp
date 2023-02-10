@@ -66,7 +66,7 @@ TestBasicRans8(file_data& InputFile)
 		f64 EncStartTime = timer();
 		u64 EncStartClock = __rdtsc();
 
-		Rans8Encoder Encoder;
+		Rans8Enc Encoder;
 		Encoder.init();
 
 		u8* Out = OutBuff + BuffSize;
@@ -99,7 +99,7 @@ TestBasicRans8(file_data& InputFile)
 
 		u8* In = DecodeBegin;
 
-		Rans8Decoder Decoder;
+		Rans8Dec Decoder;
 		Decoder.init(&In);
 
 		for (u64 i = 0; i < InputFile.Size; i++)
@@ -160,7 +160,7 @@ TestBasicRans32(file_data& InputFile)
 		f64 EncStartTime = timer();
 		u64 EncStartClock = __rdtsc();
 
-		Rans32Encoder Encoder;
+		Rans32Enc Encoder;
 		Encoder.init();
 
 		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
@@ -192,7 +192,7 @@ TestBasicRans32(file_data& InputFile)
 		u64 DecStartClock = __rdtsc();
 
 		u32* In = DecodeBegin;
-		Rans32Decoder Decoder;
+		Rans32Dec Decoder;
 		Decoder.init(&In);
 
 		for (u64 i = 0; i < InputFile.Size; i++)
@@ -261,7 +261,7 @@ TestFastEncodeRans8(file_data& InputFile)
 		f64 EncStartTime = timer();
 		u64 EncStartClock = __rdtsc();
 
-		Rans8Encoder Encoder;
+		Rans8Enc Encoder;
 		Encoder.init();
 
 		u8* Out = OutBuff + BuffSize;
@@ -293,7 +293,7 @@ TestFastEncodeRans8(file_data& InputFile)
 		u64 DecStartClock = __rdtsc();
 
 		u8* In = DecodeBegin;
-		Rans8Decoder Decoder;
+		Rans8Dec Decoder;
 		Decoder.init(&In);
 
 		for (u64 i = 0; i < InputFile.Size; i++)
@@ -363,7 +363,7 @@ TestFastEncodeRans32(file_data& InputFile)
 		f64 EncStartTime = timer();
 		u64 EncStartClock = __rdtsc();
 
-		Rans32Encoder Encoder;
+		Rans32Enc Encoder;
 		Encoder.init();
 
 		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
@@ -396,7 +396,7 @@ TestFastEncodeRans32(file_data& InputFile)
 
 		u32* In = DecodeBegin;
 
-		Rans32Decoder Decoder;
+		Rans32Dec Decoder;
 		Decoder.init(&In);
 
 		for (u64 i = 0; i < InputFile.Size; i++)
@@ -456,7 +456,7 @@ TestTableDecodeRans16(file_data& InputFile)
 		f64 EncStartTime = timer();
 		u64 EncStartClock = __rdtsc();
 
-		Rans16Encoder Encoder;
+		Rans16Enc Encoder;
 		Encoder.init();
 
 		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
@@ -489,7 +489,7 @@ TestTableDecodeRans16(file_data& InputFile)
 
 		u16* In = DecodeBegin;
 
-		Rans16Decoder Decoder;
+		Rans16Dec Decoder;
 		Decoder.init(&In);
 
 		for (u64 i = 0; i < InputFile.Size; i++)
@@ -550,7 +550,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
 
-		Rans16Encoder Enc0, Enc1;
+		Rans16Enc Enc0, Enc1;
 		Enc0.init();
 		Enc1.init();
 
@@ -592,7 +592,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 		u16* In = DecodeBegin;
 
-		Rans16Decoder Dec0, Dec1;
+		Rans16Dec Dec0, Dec1;
 		Dec0.init(&In);
 		Dec1.init(&In);
 
@@ -665,7 +665,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
 
-		Rans32Encoder Enc0, Enc1;
+		Rans32Enc Enc0, Enc1;
 		Enc0.init();
 		Enc1.init();
 
@@ -707,7 +707,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 		u32* In = DecodeBegin;
 
-		Rans32Decoder Dec0, Dec1;
+		Rans32Dec Dec0, Dec1;
 		Dec0.init(&In);
 		Dec1.init(&In);
 
