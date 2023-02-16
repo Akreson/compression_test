@@ -47,7 +47,7 @@ TestStaticModel(file_data& InputFile)
 	CompressFile(Model, InputFile, CompressBuffer);
 	u64 CompressedSize = CompressBuffer.size();
 
-	printf("compression ratio %.3f", (double)InputFile.Size / (double)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	Model.reset();
 
@@ -117,7 +117,7 @@ TestPPMModel(file_data& InputFile)
 
 	CompressFile(PPMModel, InputFile, CompressBuffer);
 	u64 CompressedSize = CompressBuffer.size();
-	printf("compression ratio %.3f\n", (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 	printf("Sym: %.3f | Esc: %.3f", PPMModel.SymEnc, PPMModel.EscEnc);
 
 	PPMModel.reset();

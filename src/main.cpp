@@ -97,7 +97,7 @@ TestBasicRans8(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -189,7 +189,7 @@ TestBasicRans32(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -288,7 +288,7 @@ TestFastEncodeRans8(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -388,7 +388,7 @@ TestFastEncodeRans32(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -479,7 +479,7 @@ TestTableDecodeRans16(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -582,7 +582,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -695,7 +695,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
@@ -802,7 +802,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-	printf(" %d bytes | %.3f ratio\n", CompressedSize, (f64)InputFile.Size / (f64)CompressedSize);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RunsCount; Run++)
