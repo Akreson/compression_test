@@ -1,4 +1,3 @@
-// just mimic Fabian's example https://github.com/rygorous/ryg_rans
 
 struct SymbolStats
 {
@@ -10,82 +9,59 @@ struct SymbolStats
 	void countSymbol(u8* Input, u64 Size)
 	{
 		ZeroSize(Freq, sizeof(Freq));
-
-		for (u64 i = 0; i < Size; i++)
-		{
-			Freq[Input[i]]++;
-		}
+		CountByte(Freq, Input, Size);
 	}
 
 	void normalize(u32 TargetTotal)
 	{
 		Assert(TargetTotal >= 256);
 
-		caclUnnormCumFreq();
-		u32 CurrTotal = CumFreq[256];
+		caclCumFreq();
 
-		for (u32 i = 1; i < 257; i++)
-		{
-			CumFreq[i] = ((u64)TargetTotal * CumFreq[i]) / CurrTotal;
-		}
+		u16 NormFreq[256] = {};
+		u16 NormCumFreq[257] = {};
 
+		Normalize(Freq, CumFreq, NormFreq, NormCumFreq, 256, TargetTotal);
 		for (u32 i = 0; i < 256; i++)
 		{
-			if (Freq[i] && (CumFreq[i] == CumFreq[i + 1]))
-			{
-				u32 BestFreq = ~0u;
-				s32 BestStealIndex = -1;
-				for (u32 j = 0; j < 256; j++)
-				{
-					u32 CheckFreq = CumFreq[j + 1] - CumFreq[j];
-					if ((CheckFreq > 1) && (CheckFreq < BestFreq))
-					{
-						BestFreq = CheckFreq;
-						BestStealIndex = j;
-					}
-				}
-
-				Assert(BestStealIndex != -1);
-				if (BestStealIndex < i)
-				{
-					for (u32 j = BestStealIndex + 1; j <= i; j++)
-					{
-						CumFreq[j]--;
-					}
-				}
-				else
-				{
-					for (u32 j = i + 1; j <= BestStealIndex; j++)
-					{
-						CumFreq[j]++;
-					}
-				}
-			}
-		}
-
-		Assert((CumFreq[0] == 0) && (CumFreq[256] == TargetTotal));
-		for (u32 i = 0; i < 256; i++)
-		{
-			if (Freq[i] == 0)
-			{
-				Assert(CumFreq[i + 1] == CumFreq[i])
-			}
-			else
-			{
-				Assert(CumFreq[i + 1] > CumFreq[i])
-			}
-
-			Freq[i] = CumFreq[i + 1] - CumFreq[i];
+			Freq[i] = NormFreq[i];
+			CumFreq[i + 1] = NormCumFreq[i + 1];
 		}
 	}
 
-private:
-	void caclUnnormCumFreq()
+	void fastNormalize(u32 Size, u32 TargetTotal)
 	{
-		CumFreq[0] = 0;
+		u16 NormFreq[256] = {};
+		FastNormalize(Freq, NormFreq, Size, 256, TargetTotal);
+
 		for (u32 i = 0; i < 256; i++)
 		{
-			CumFreq[i + 1] = CumFreq[i] + Freq[i];
+			Freq[i] = NormFreq[i];
 		}
+		caclCumFreq();
+	}
+
+	void optimalNormalize(u32 TargetTotal)
+	{
+		u32 TotalSum = 0;
+		for (u32 i = 0; i < 256; i++)
+		{
+			TotalSum += Freq[i];
+		}
+
+		u16 NormFreq[256] = {};
+		OptimalNormalize(Freq, NormFreq, TotalSum, 256, TargetTotal);
+
+		for (u32 s = 0; s < 256; s++)
+		{
+			Freq[s] = NormFreq[s];
+		}
+		caclCumFreq();
+	}
+
+private:
+	void caclCumFreq()
+	{
+		CalcCumFreq(Freq, CumFreq, 256);
 	}
 };
