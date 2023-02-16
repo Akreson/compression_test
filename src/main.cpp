@@ -748,7 +748,7 @@ void
 TestSIMDDecodeRans16(file_data& InputFile)
 {
 	u32 RunsCount = 10;
-	printf("TestTableInterleavedRans16\n");
+	printf("TestSIMDDecodeRans16\n");
 
 	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -850,6 +850,129 @@ TestSIMDDecodeRans16(file_data& InputFile)
 	delete[] DecBuff;
 }
 
+static inline u32*
+EncodeRans32(u32* Out, u8* Data, u64 Size, u16* Freq, u16* CumFreq, u32 ProbBit)
+{
+	Rans32Enc Encoder;
+	Encoder.init();
+
+	for (u64 i = Size; i > 0; i--)
+	{
+		u8 Symbol = Data[i - 1];
+		Encoder.encode(&Out, (u32)CumFreq[Symbol], (u32)Freq[Symbol], ProbBit);
+	}
+	Encoder.flush(&Out);
+
+	return Out;
+}
+
+static inline void
+DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq, u16* CumFreq, u32 ProbBit)
+{
+	u32 ProbScale = 1 << ProbBit;
+	u8* Cum2Sym = new u8[ProbScale];
+	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
+	{
+		for (u32 j = CumFreq[SymbolIndex]; j < CumFreq[SymbolIndex + 1]; j++)
+		{
+			Cum2Sym[j] = SymbolIndex;
+		}
+	}
+
+	u32* In = DecodeBegin;
+	Rans32Dec Decoder;
+	Decoder.init(&In);
+
+	u64 ByteIndex = 0;
+	while (ByteIndex < RefSize)
+	{
+		u32 CumFreqVal = Decoder.decodeGet(ProbBit);
+		u8 Symbol = Cum2Sym[CumFreqVal];
+
+		Assert(RefData[ByteIndex] == Symbol)
+
+		DecBuff[ByteIndex++] = Symbol;
+		Decoder.decodeAdvance(&In, CumFreq[Symbol], Freq[Symbol], ProbBit);
+	}
+}
+
+void
+TestNormalizationRans32(file_data& InputFile)
+{
+	u64 BuffSize = AlignSizeForward(InputFile.Size);
+	u8* OutBuff = new u8[BuffSize];
+	u8* DecBuff = new u8[BuffSize];
+	u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+
+	u32 RawFreq[256] = {};
+	u32 CumFreq32[257] = {};
+	CountByte(RawFreq, InputFile.Data, InputFile.Size);
+	CalcCumFreq(RawFreq, CumFreq32, 256);
+
+	u32 TotalSum = 0;
+	for (u32 i = 0; i < 256; i++)
+	{
+		TotalSum += RawFreq[i];
+	}
+
+	u16 NormFreq[256];
+	u16 CumFreq[257];
+
+	u32 TableLogSize[] = {14, 13, 12, 11, 10};
+	for (u32 i = 0; i < ArrayCount(TableLogSize); i++)
+	{
+		printf("tableLog %d\n", TableLogSize[i]);
+		u32 ProbBit = TableLogSize[i];
+		u32 ProbScale = 1 << ProbBit;
+
+		//tutorial normalize
+		ZeroSize(NormFreq, sizeof(NormFreq));
+		ZeroSize(CumFreq, sizeof(CumFreq));
+
+		Normalize(RawFreq, CumFreq32, NormFreq, CumFreq, 256, ProbScale);
+
+		u32* DecodeBegin = EncodeRans32(Out, InputFile.Data, InputFile.Size, NormFreq, CumFreq, ProbBit);
+
+		u64 CompressedSizeNorm = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff, DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
+
+		printf("(norm) ");
+		PrintCompressionSize(InputFile.Size, CompressedSizeNorm);
+
+		//fast normalize
+		ZeroSize(NormFreq, sizeof(NormFreq));
+		ZeroSize(CumFreq, sizeof(CumFreq));
+
+		FastNormalize(RawFreq, NormFreq, InputFile.Size, 256, ProbBit);
+		CalcCumFreq(NormFreq, CumFreq, 256);
+
+		DecodeBegin = EncodeRans32(Out, InputFile.Data, InputFile.Size, NormFreq, CumFreq, ProbBit);
+
+		u64 CompressedSizeFast = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff, DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
+
+		printf("(fast) ");
+		PrintCompressionSize(InputFile.Size, CompressedSizeFast);
+
+		// optimal normalize
+		ZeroSize(NormFreq, sizeof(NormFreq));
+		ZeroSize(CumFreq, sizeof(CumFreq));
+
+		OptimalNormalize(RawFreq, NormFreq, TotalSum, 256, ProbScale);
+		CalcCumFreq(NormFreq, CumFreq, 256);
+
+		DecodeBegin = EncodeRans32(Out, InputFile.Data, InputFile.Size, NormFreq, CumFreq, ProbBit);
+
+		u64 CompressedSizeOpt = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff, DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
+
+		printf("(optm) ");
+		PrintCompressionSize(InputFile.Size, CompressedSizeOpt);
+
+		printf("\n");
+	}
+}
+
 int
 main(int argc, char** argv)
 {
@@ -871,7 +994,9 @@ main(int argc, char** argv)
 	//TestTableDecodeRans16(InputFile);
 	//TestTableInterleavedRans16(InputFile);
 	//TestTableInterleavedRans32(InputFile);
-	TestSIMDDecodeRans16(InputFile);
+	//TestSIMDDecodeRans16(InputFile);
+
+	TestNormalizationRans32(InputFile);
 
 	return 0;
 }

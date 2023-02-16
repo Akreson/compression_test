@@ -223,4 +223,10 @@ ReadFile(const char* Name)
 	return Result;
 }
 
+inline void
+PrintCompressionSize(u64 InitSize, u64 CompSize)
+{
+	printf("%d bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
+}
+
 #endif
