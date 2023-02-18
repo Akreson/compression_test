@@ -1,6 +1,12 @@
 #if !defined(RANS_COMMON_H)
 #define RANS_COMMON_H
 
+struct rans_sym
+{
+	u16 Freq;
+	u16 Start;
+};
+
 struct rans_enc_sym32
 {
     u32 Max;

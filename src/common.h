@@ -13,7 +13,6 @@ typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
-typedef size_t memory_index;
 
 typedef int64_t s64;
 typedef int32_t s32;
@@ -47,6 +46,15 @@ static constexpr f64 MaxF64 = std::numeric_limits<f64>::max();
 #endif
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
+template<typename T, u32 Dim0, u32 Dim1>
+struct array2d
+{
+	static constexpr u32 d0 = Dim0;
+	static constexpr u32 d1 = Dim1;
+
+	T E[Dim0][Dim1];
+};
 
 struct AccumTime
 {
@@ -178,7 +186,7 @@ ZeroSize(void* Ptr, u64 Size)
 #define ZeroStruct(Instance) ZeroSize((void *)&(Instance), sizeof(Instance))
 
 inline void
-Copy(memory_index Size, void* DestBase, void* SourceBase)
+Copy(size_t Size, void* DestBase, void* SourceBase)
 {
 	u8* Source = (u8*)SourceBase;
 	u8* Dest = (u8*)DestBase;

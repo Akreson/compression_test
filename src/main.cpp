@@ -889,7 +889,7 @@ DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq,
 		u32 CumFreqVal = Decoder.decodeGet(ProbBit);
 		u8 Symbol = Cum2Sym[CumFreqVal];
 
-		Assert(RefData[ByteIndex] == Symbol)
+		Assert(RefData[ByteIndex] == Symbol);
 
 		DecBuff[ByteIndex++] = Symbol;
 		Decoder.decodeAdvance(&In, CumFreq[Symbol], Freq[Symbol], ProbBit);
@@ -973,6 +973,206 @@ TestNormalizationRans32(file_data& InputFile)
 	}
 }
 
+typedef array2d<u32, 256, 256> freq_val_o1;
+typedef array2d<u16, 256, 257> cdf_val_o1;
+
+void
+PrecomputCDFFromEntireData(u8* Data, u64 Size, cdf_val_o1* MixCDF, u32 TargetTotalLog, u32 SymCount)
+{
+	u16* TempNormFreq = new u16[SymCount];
+	u32* Total = new u32[SymCount];
+	freq_val_o1* Order1Freq = new freq_val_o1;
+
+	ZeroSize(TempNormFreq, sizeof(u16) * SymCount);
+
+	for (u32 i = 0; i < freq_val_o1::d0; i++)
+	{
+		u32* Arr = &Order1Freq->E[i][0];
+		MemSet<u32>(Arr, SymCount, 1);
+	}
+	MemSet<u32>(Total, SymCount, SymCount);
+
+	u32 Inc = 16;
+	for (u32 i = 1; i < Size; i++)
+	{
+		Order1Freq->E[Data[i - 1]][Data[i]] += Inc;
+		Total[Data[i - 1]] += Inc;
+	}
+
+	for (u32 i = 0; i < SymCount; i++)
+	{
+		FastNormalize(Order1Freq->E[i], TempNormFreq, Total[i], SymCount, TargetTotalLog);
+		CalcCumFreq(TempNormFreq, MixCDF->E[i], SymCount);
+		ZeroSize(TempNormFreq, sizeof(u16)*SymCount);
+	}
+
+	delete TempNormFreq;
+	delete Order1Freq;
+}
+
+void
+AdaptFromMixCDF(u16* CDF, u16* AdaptCDF, u32 AdaptRate, u32 SymCount)
+{
+	for (u32 i = 1; i < SymCount; i++)
+	{
+		s16 NewCDF = ((s16)AdaptCDF[i] - (s16)CDF[i]) >> AdaptRate;
+		CDF[i] = ((s16)CDF[i] + NewCDF);
+		Assert(CDF[i] >= CDF[i - 1]);
+	}
+}
+
+b32
+CheckCDF(u16* CDF, u32 SymCount, u32 TargetTotal)
+{
+	u32 Total = 0;
+	for (u32 i = 1; i < (SymCount + 1); i++)
+	{
+		Total += CDF[i] - CDF[i - 1];
+	}
+
+	return Total == TargetTotal;
+}
+
+void
+InitEqDistCDF(u16 * CDF, u32 SymCount, u32 ProbScale)
+{
+	const u16 InitCDFValue = ProbScale / SymCount;
+	
+	CDF[0] = 0;
+	for (u32 i = 1; i < (SymCount + 1); i++)
+	{
+		CDF[i] = CDF[i - 1] + InitCDFValue;
+	}
+	Assert(CDF[SymCount] == ProbScale);
+}
+
+// mixing CDF test (this test was setup for fun, require tuning parameters to beat static model,
+// this parameters was used for book1 to compress it to 2.039 ratio)
+void
+TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
+{
+	const u32 AdaptRate = 1;
+	const u32 SymCount = 256;
+	const u32 ProbBit = 14;
+	const u32 ProbScale = 1 << ProbBit;
+	const u32 CDFSize = sizeof(u16) * (SymCount+1);
+
+	Assert(ProbBit <= 15); // for ease u16 -> s16 interpretation
+
+	// init data
+	u16* CDF = new u16[SymCount + 1];
+	u16* InitCDF = new u16[SymCount + 1];
+	cdf_val_o1* MixCDF = new cdf_val_o1;
+
+	InitEqDistCDF(InitCDF, SymCount, ProbScale);
+	PrecomputCDFFromEntireData(InputFile.Data, InputFile.Size, MixCDF, ProbBit, SymCount);
+
+	// collect adapted rans sym
+	const u32 SplitSize = 1 << 16;
+	Assert(IsPowerOf2(SplitSize));
+
+	u64 Start = 0;
+	u64 End = SplitSize < InputFile.Size ? SplitSize : InputFile.Size;
+
+	std::vector<rans_sym> BuffRans;
+	for (;;)
+	{
+		Copy(CDFSize, CDF, InitCDF);
+		
+		for (u64 i = Start; i < End; i++)
+		{
+			rans_sym R;
+		
+			u8 Sym = InputFile.Data[i];
+			R.Start = CDF[Sym];
+			R.Freq = CDF[Sym + 1] - R.Start;
+			Assert(R.Freq);
+
+			BuffRans.push_back(R);
+
+			AdaptFromMixCDF(CDF, MixCDF->E[Sym], AdaptRate, SymCount);
+			Assert(CheckCDF(CDF, SymCount, ProbScale));
+		}
+
+		if (End == InputFile.Size) break;
+
+		Start += SplitSize;
+		End += SplitSize;
+		End = End < InputFile.Size ? End : InputFile.Size;
+	}
+
+	//encoding
+	u64 BuffSize = AlignSizeForward(InputFile.Size);
+	u8* OutBuff = new u8[BuffSize];
+	u8* DecBuff = new u8[BuffSize];
+	u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+
+	u32* DecodeBegin = nullptr;
+	Rans32Enc Encoder;
+	Encoder.init();
+
+	u32 ToFlush = InputFile.Size / SplitSize;
+	ToFlush = InputFile.Size - (ToFlush * SplitSize);
+
+	for (u64 i = BuffRans.size(); i > 0; i--)
+	{
+		rans_sym& R = BuffRans.back();
+		Encoder.encode(&Out, (u32)R.Start, (u32)R.Freq, ProbBit);
+		BuffRans.pop_back();
+
+		if (--ToFlush == 0)
+		{
+			Encoder.flush(&Out);
+			Encoder.init();
+			ToFlush = SplitSize;
+		}
+	}
+	DecodeBegin = Out;
+
+	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	PrintCompressionSize(InputFile.Size, CompressedSize);
+
+	//decoding
+	Copy(CDFSize, CDF, InitCDF);
+
+	u32* In = DecodeBegin;
+	Rans32Dec Decoder;
+	Decoder.init(&In);
+
+	u64 ByteIndex = 0;
+	while (ByteIndex < InputFile.Size)
+	{
+		u8 Sym;
+		u16 CumStart;
+		u32 CumFreqVal = Decoder.decodeGet(ProbBit);
+
+		for (u32 i = 0; i < (SymCount + 1); i++)
+		{
+			if (CDF[i] > CumFreqVal)
+			{
+				Sym = i - 1;
+				CumStart = CDF[Sym];
+				break;
+			}
+		}
+
+		Assert(InputFile.Data[ByteIndex] == Sym);
+		DecBuff[ByteIndex++] = Sym;
+
+		u32 Freq = CDF[Sym + 1] - CumStart;
+		Decoder.decodeAdvance(&In, CumStart, Freq, ProbBit);
+
+		AdaptFromMixCDF(CDF, MixCDF->E[Sym], AdaptRate, SymCount);
+		Assert(CheckCDF(CDF, SymCount, ProbScale));
+
+		if ((ByteIndex & (SplitSize - 1)) == 0)
+		{
+			for (u32 i = 0; i < (SymCount + 1); i++) CDF[i] = InitCDF[i];
+			Decoder.init(&In);
+		}
+	}
+}
+
 int
 main(int argc, char** argv)
 {
@@ -995,8 +1195,8 @@ main(int argc, char** argv)
 	//TestTableInterleavedRans16(InputFile);
 	//TestTableInterleavedRans32(InputFile);
 	//TestSIMDDecodeRans16(InputFile);
-
-	TestNormalizationRans32(InputFile);
+	//TestNormalizationRans32(InputFile);
+	TestPrecomputeAdaptiveOrder1Rans32(InputFile);
 
 	return 0;
 }
