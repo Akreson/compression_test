@@ -634,6 +634,10 @@ private:
 				New->TotalFreq = 0;
 				New->SymbolCount = 0;
 			}
+			else
+			{
+				New = nullptr;
+			}
 		}
 
 		return New;
