@@ -1185,7 +1185,7 @@ main(int argc, char** argv)
 	file_data InputFile = ReadFile(argv[1]);
 
 	//TestStaticModel(InputFile);
-	//TestPPMModel(InputFile);
+	TestPPMModel(InputFile);
 	
 	//TestBasicRans8(InputFile);
 	//TestBasicRans32(InputFile);
@@ -1196,7 +1196,7 @@ main(int argc, char** argv)
 	//TestTableInterleavedRans32(InputFile);
 	//TestSIMDDecodeRans16(InputFile);
 	//TestNormalizationRans32(InputFile);
-	TestPrecomputeAdaptiveOrder1Rans32(InputFile);
+	//TestPrecomputeAdaptiveOrder1Rans32(InputFile);
 
 	return 0;
 }

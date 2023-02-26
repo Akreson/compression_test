@@ -32,14 +32,15 @@ class StaticSubAlloc
 	static constexpr u32 MaxBlockFreeSize = std::numeric_limits<u32>::max() >> 2;
 
 	void* Memory;
-	mem_block* EndOfMemBlock;
+	union
+	{
+		mem_block* MemBlock;
+		free_mem_block* FreeMemBlock;
+	} EndOf;
 	free_mem_block FreeSentinel;
 	u64 TotalSize;
 	u32 MinAlloc;
 	u32 MinUse;
-
-	//u32 RcpMinUse;
-	//u32 RcpShift;
 
 public:
 #if DEBUG_SUB_ALLOC
@@ -74,11 +75,9 @@ public:
 			SizeToReserve = MinUse;
 		}
 		
-		setAlignForMinUse();
 		TotalSize = SizeToReserve;
-
 		Memory = new u8[TotalSize];
-		EndOfMemBlock = reinterpret_cast<mem_block*>(static_cast<u8*>(Memory) + TotalSize);
+		EndOf.MemBlock = reinterpret_cast<mem_block*>(static_cast<u8*>(Memory) + TotalSize);
 
 		reset();
 	}
@@ -124,7 +123,7 @@ public:
 					FreeMem -= MemBlockSize;
 #endif
 				}
-				while (FreeBlock != reinterpret_cast<free_mem_block*>(EndOfMemBlock));
+				while (FreeBlock != EndOf.FreeMemBlock);
 			}
 			else
 			{
@@ -148,12 +147,11 @@ public:
 
 	u8* alloc(u32 ReqSize)
 	{
+		Assert(ReqSize < MaxBlockFreeSize);
+
 		u8* Result = nullptr;
-
 		u32 AllocSize = alignSizeWithMinAllocForward(ReqSize);
-		u32 MinLeftSize = AllocSize + MemBlockSize;
 
-		free_mem_block* Prev = &FreeSentinel;
 		for (free_mem_block* FreeBlock = FreeSentinel.Next;
 			FreeBlock != &FreeSentinel;
 			FreeBlock = FreeBlock->Next)
@@ -197,14 +195,12 @@ public:
 #endif
 				break;
 			}
-
-			Prev = FreeBlock;
 		}
 
 #if DEBUG_SUB_ALLOC
 		if (!Result)
 		{
-			logFreeMemInfo();
+			logFreeMemInfo(AllocSize);
 		}
 #endif
 		return Result;
@@ -229,7 +225,7 @@ public:
 		FreeMem += Block->Mem.Size;
 #endif
 
-		if (EndOfMemBlock != NextBlock)
+		if (EndOf.MemBlock != NextBlock)
 		{
 			Assert(NextBlock->Size);
 			Assert(Block->Mem.Size == NextBlock->PrevSize);
@@ -260,20 +256,21 @@ public:
 			{
 				PrevBlock->Size += Block->Mem.Size + MemBlockSize;
 				patchNextPrevSize(Block, PrevBlock->Size);
-
+				Block = nullptr;
 #if DEBUG_SUB_ALLOC
 				FreeMem += MemBlockSize;
 #endif
 			}
-			else
-			{
-				Block->Mem.IsFree = true;
-				insertBlockNext(&FreeSentinel, Block);
+		}
+
+		if (Block)
+		{
+			Block->Mem.IsFree = true;
+			insertBlockNext(&FreeSentinel, Block);
 
 #if DEBUG_SUB_ALLOC
-				FreeListCount++;
+			FreeListCount++;
 #endif
-			}
 		}
 	}
 
@@ -303,37 +300,20 @@ public:
 			if (Result)
 			{
 				Copy(Block->Size, Result, Ptr);
+				dealloc(Ptr);
 			}
-
-			dealloc(Ptr);
 		}
 
 		return Result;
 	}
 
 private:
-	inline void setAlignForMinUse()
-	{
-		/*
-		bit_scan_result Result = FindMostSignificantSetBit(MinUse);
-		Assert(Result.Succes);
-
-		u32 Shift = Result.Index + 1;
-		RcpMinUse = (u32)(((1ull << (Shift + 31)) + MinUse - 1) / MinUse);
-		RcpShift = Shift - 1;
-		*/
-	}
-
 	//NOTE: for non power of 2 align
 	inline u32 alignSizeWithMinAllocForward(u32 Size)
 	{
-		/*
-		u32 q = (u32)(((u64)Size * RcpMinUse) >> 32) >> RcpShift;
-		u32 Rem = Size - q*MinUse;
-		*/
-
-		u32 Rem = Size % MinUse;
-		u32 Result = (Size - Rem) + MinUse;
+		u32 Rem = Size % MinAlloc;
+		u32 Result = (Size - Rem) + MinAlloc;
+		if (Rem == 0) Result = Size;
 
 		return Result;
 	}
@@ -344,11 +324,11 @@ private:
 		Assert(NewPrevSize <= MaxBlockFreeSize);
 
 		mem_block* MemBlock = reinterpret_cast<mem_block*>(NextAfter);
-		mem_block* OldNext = getNextBlockPtr(MemBlock, MemBlock->Size);
+		mem_block* CurrNext = getNextBlockPtr(MemBlock, MemBlock->Size);
 
-		if (EndOfMemBlock != OldNext)
+		if (EndOf.MemBlock != CurrNext)
 		{
-			OldNext->PrevSize = NewPrevSize;
+			CurrNext->PrevSize = NewPrevSize;
 		}
 	}
 
@@ -400,11 +380,10 @@ public:
 	void memcheck()
 	{
 #if DEBUG_SUB_ALLOC
-		memset(DebugBlocksCount, 0, DebugBlockMaxSize);
+		memset(DebugBlocksCount, 0, DebugBlockMaxSize*4);
 
 		u32 FreeListTotalMem = 0;
 		u32 Largest = 0;
-		u32 i = 0;
 		for (free_mem_block* FreeBlock = FreeSentinel.Next;
 			FreeBlock != &FreeSentinel;
 			FreeBlock = FreeBlock->Next)
@@ -418,15 +397,14 @@ public:
 			{
 				DebugBlocksCount[FreeBlock->Mem.Size]++;
 			}
-			i++;
 		}
 #endif
 	}
 
-	void logFreeMemInfo()
+	void logFreeMemInfo(u32 LastReqSize)
 	{
 #if DEBUG_SUB_ALLOC
-		memset(DebugBlocksCount, 0, DebugBlockMaxSize);
+		memset(DebugBlocksCount, 0, DebugBlockMaxSize*4);
 
 		u32 FreeListTotalMem = 0;
 		u32 Largest = 0;
@@ -449,20 +427,20 @@ public:
 		}
 
 		u32 TotalFreeMem = (i * MemBlockSize) + FreeListTotalMem;
-		LOG("(alloc) mem in free in:%d with:%d largest:%d free-list:%d\n", FreeListTotalMem, TotalFreeMem, Largest, FreeListCount);
+		LOG("(alloc) mem in free in:%u with:%u largest:%u free-list:%d (last-req: %u)\n", FreeListTotalMem, TotalFreeMem, Largest, FreeListCount, LastReqSize);
 
 		u32 mi = 0;
-		double max = 0.0;
+		f64 max = 0.0;
 		u32 counter = 0;
 
 		for (u32 i = 0; i < (1 << 13); i++)
 		{
 			if (DebugBlocksCount[i] > 0)
 			{
-				u32 TotalCount = DebugBlocksCount[i] * i + MemBlockSize * DebugBlocksCount[i];
-				double per = (double)TotalCount / (double)TotalFreeMem;
+				u32 TotalCount = (DebugBlocksCount[i] * i) + (MemBlockSize * DebugBlocksCount[i]);
+				f64 per = (f64)TotalCount / (f64)TotalFreeMem;
 
-				LOG(" (%d| bc:%d free:%d tmem:%d oft:%.3f) ", i, DebugBlocksCount[i], DebugBlocksCount[i] * i, TotalCount, per);
+				LOG(" (%u| bc:%u free:%u tmem:%u oft:%.3f) ", i, DebugBlocksCount[i], DebugBlocksCount[i] * i, TotalCount, per);
 
 				if (++counter == 2)
 				{
@@ -476,13 +454,13 @@ public:
 				}
 			}
 		}
+		if (counter == 1) LOG("\n");
 		LOG("\n");
 
-		u32 TotalCount = (DebugBlocksCount[mi] * mi) + (MemBlockSize * mi);
-		double per = (double)TotalCount / (double)TotalFreeMem;
+		u32 TotalCount = (DebugBlocksCount[mi] * mi) + (MemBlockSize * DebugBlocksCount[mi]);
+		f64 per = (f64)TotalCount / (f64)TotalFreeMem;
 
-		LOG("max-used-space (%d| bc:%d free:%d tmem:%d oft:%.3f) ", mi, DebugBlocksCount[mi], DebugBlocksCount[mi] * mi, TotalCount, per);
-		LOG("\n\n");
+		LOG(" max-used-space (%d| bc:%d free:%d tmem:%d oft:%.3f)\n\n", mi, DebugBlocksCount[mi], DebugBlocksCount[mi] * mi, TotalCount, per);
 #endif
 	}
 };

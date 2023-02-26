@@ -115,7 +115,11 @@ TestPPMModel(file_data& InputFile)
 	PPMByte PPMModel(4, MemLimit);
 	ByteVec CompressBuffer;
 
+	f64 StartTime = timer();
 	CompressFile(PPMModel, InputFile, CompressBuffer);
+	f64 EndTime = timer() - StartTime;
+	printf("Time %.3f", EndTime);
+
 	u64 CompressedSize = CompressBuffer.size();
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 	printf("Sym: %.3f | Esc: %.3f", PPMModel.SymEnc, PPMModel.EscEnc);

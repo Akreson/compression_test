@@ -26,7 +26,7 @@ public:
 
 	PPMByte() = delete;
 	PPMByte(u32 MaxOrderContext, u32 MemLimit) :
-		SubAlloc(MemLimit, sizeof(context_data) * 2), SEE(nullptr), OrderCount(MaxOrderContext)
+		SubAlloc(MemLimit, 32), SEE(nullptr), OrderCount(MaxOrderContext)
 	{
 		initModel();
 		SEE = new SEEState;
