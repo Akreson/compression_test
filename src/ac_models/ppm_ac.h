@@ -5,7 +5,7 @@ struct context_data_excl
 {
 	u8 Data[256];
 
-	static constexpr u8 Mask = MaxUInt16;
+	static constexpr u8 Mask = MaxUInt8;
 	static constexpr u8 ClearMask = 0;
 };
 

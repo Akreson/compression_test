@@ -1,6 +1,9 @@
+#include "ac/ac.cpp"
+#include "ac_models/basic_ac.cpp"
+#include "ac_models/ppm_ac.cpp"
 
 void
-CompressFile(StaticByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
+CompressFile(BasicByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
 {
 	ArithEncoder Encoder(OutBuffer);
 
@@ -16,7 +19,7 @@ CompressFile(StaticByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
 }
 
 void
-DecompressFile(StaticByteModel& Model, file_data& OutputFile, ByteVec& InputBuffer)
+DecompressFile(BasicByteModel& Model, file_data& OutputFile, ByteVec& InputBuffer)
 {
 	ArithDecoder Decoder(InputBuffer);
 
@@ -28,7 +31,7 @@ DecompressFile(StaticByteModel& Model, file_data& OutputFile, ByteVec& InputBuff
 		u32 DecodedSymbol;
 		prob Prob = Model.getByteFromFreq(DecodedFreq, &DecodedSymbol);
 
-		if (DecodedSymbol == StaticByteModel::EndOfStreamSymbolIndex) break;
+		if (DecodedSymbol == BasicByteModel::EndOfStreamSymbolIndex) break;
 
 		Decoder.updateDecodeRange(Prob);
 		Model.update(DecodedSymbol);
@@ -39,9 +42,9 @@ DecompressFile(StaticByteModel& Model, file_data& OutputFile, ByteVec& InputBuff
 }
 
 void
-TestStaticModel(file_data& InputFile)
+TestACBasicModel(file_data& InputFile)
 {
-	StaticByteModel Model;
+	BasicByteModel Model;
 	ByteVec CompressBuffer;
 
 	CompressFile(Model, InputFile, CompressBuffer);
@@ -98,7 +101,7 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 
 		Assert(ByteIndex <= OutputFile.Size);
 		Assert(InputFile.Data[ByteIndex] == DecodedSymbol)
-			OutputFile.Data[ByteIndex++] = DecodedSymbol;
+		OutputFile.Data[ByteIndex++] = DecodedSymbol;
 
 		if (!(ByteIndex & 0xffff))
 		{
@@ -118,11 +121,14 @@ TestPPMModel(file_data& InputFile)
 	f64 StartTime = timer();
 	CompressFile(PPMModel, InputFile, CompressBuffer);
 	f64 EndTime = timer() - StartTime;
-	printf("Time %.3f", EndTime);
+	printf("EncTime %.3f\n", EndTime);
 
 	u64 CompressedSize = CompressBuffer.size();
 	PrintCompressionSize(InputFile.Size, CompressedSize);
-	printf("Sym: %.3f | Esc: %.3f", PPMModel.SymEnc, PPMModel.EscEnc);
+
+#ifdef _DEBUG
+	printf("Sym: %.3f | Esc: %.3f\n", PPMModel.SymEnc, PPMModel.EscEnc);
+#endif
 
 	PPMModel.reset();
 
@@ -131,7 +137,10 @@ TestPPMModel(file_data& InputFile)
 	OutputFile.Size = InputFile.Size;
 	OutputFile.Data = new u8[OutputFile.Size];
 
+	StartTime = timer();
 	DecompressFile(PPMModel, OutputFile, CompressBuffer, InputFile);
+	EndTime = timer() - StartTime;
+	printf("DecTime %.3f\n", EndTime);
 
 	delete[] OutputFile.Data;
 #endif

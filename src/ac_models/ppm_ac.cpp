@@ -21,8 +21,10 @@ public:
 	StaticSubAlloc SubAlloc;
 	static constexpr u32 EscapeSymbol = context::MaxSymbol + 1;
 
+#ifdef _DEBUG
 	f64 SymEnc;
 	f64 EscEnc;
+#endif
 
 	PPMByte() = delete;
 	PPMByte(u32 MaxOrderContext, u32 MemLimit) :

@@ -1,6 +1,6 @@
 
 // (0...255 = 256) + end_of_stream + total_cum_freq
-class StaticByteModel
+class BasicByteModel
 {
 	u32 CumFreq[258];
 
@@ -9,7 +9,7 @@ class StaticByteModel
 public:
 	static constexpr u32 EndOfStreamSymbolIndex = FreqArraySize - 2;
 
-	StaticByteModel()
+	BasicByteModel()
 	{
 		reset();
 	}
