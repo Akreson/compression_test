@@ -1,3 +1,4 @@
+#include "ac_params.h"
 
 class ArithEncoder
 {
@@ -11,47 +12,68 @@ class ArithEncoder
 
 public:
 	ArithEncoder() = delete;
-	ArithEncoder(ByteVec& OutBuffer) :
-		Bytes(OutBuffer), lo(0), hi(CodeMaxValue), PendingBits(0), BitBuff(0), BitAccumCount(8) {}
+	~ArithEncoder() = default;
 
-	~ArithEncoder()
+	ArithEncoder(ByteVec& OutBuffer) :
+		Bytes(OutBuffer)
+	{
+		initVal();
+	}
+
+
+	inline void flush()
 	{
 		PendingBits++;
-		if (lo < OneFourth) writeBit(0);
+		if (lo < ONE_FOURTH) writeBit(0);
 		else writeBit(1);
 
 		if (BitBuff) Bytes.push_back(BitBuff);
 	}
 
+	inline void reset()
+	{
+		Bytes.clear();
+		initVal();
+	}
+
+	inline void initVal()
+	{
+		lo = 0;
+		hi = CODE_MAX_VALUE;
+		PendingBits = 0;
+		BitBuff = 0;
+		BitAccumCount = 8;
+	}
+
 	void encode(prob Prob)
 	{
 		u32 range = (hi - lo) + 1;
-		hi = lo + ((range * Prob.hi) / Prob.count) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.count);
+		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
+		lo = lo + ((range * Prob.lo) / Prob.scale);
 
 		for (;;)
 		{
-			if (hi < OneHalf)
+			if (hi < ONE_HALF)
 			{
 				writeBit(0);
 			}
-			else if (lo >= OneHalf)
+			else if (lo >= ONE_HALF)
 			{
 				writeBit(1);
 			}
-			else if ((lo >= OneFourth) && (hi < ThreeFourths))
+			else if ((lo >= ONE_FOURTH) && (hi < TREE_FOURTHS))
 			{
 				++PendingBits;
-				lo -= OneFourth;
-				hi -= OneFourth;
+				lo -= ONE_FOURTH;
+				hi -= ONE_FOURTH;
 			}
 			else break;
 
 			hi <<= 1;
 			hi++;
 			lo <<= 1;
-			hi &= CodeMaxValue;
-			lo &= CodeMaxValue;
+			hi &= CODE_MAX_VALUE;
+			lo &= CODE_MAX_VALUE;
 		}
 	}
 
@@ -63,8 +85,8 @@ private:
 
 		if (!BitAccumCount)
 		{
-			BitAccumCount = 8;
 			Bytes.push_back(BitBuff);
+			BitAccumCount = 8;
 			BitBuff = 0;
 		}
 	}
@@ -97,10 +119,22 @@ class ArithDecoder
 
 public:
 	ArithDecoder() = delete;
+	~ArithDecoder() = default;
+
 	ArithDecoder(ByteVec& InputBuffer) :
-		BytesIn(InputBuffer), lo(0), hi(CodeMaxValue), code(0), ReadBytesPos(0), ReadBitPos(8)
+		BytesIn(InputBuffer), lo(0), hi(CODE_MAX_VALUE), code(0), ReadBytesPos(0), ReadBitPos(8)
 	{
 		InSize = InputBuffer.size();
+		initVal();
+	}
+
+	inline void initVal()
+	{
+		lo = 0;
+		hi = CODE_MAX_VALUE;
+		code = 0;
+		ReadBytesPos = 0;
+		ReadBitPos = 8;
 
 		for (u32 i = 0; i < 2; ++i)
 		{
@@ -108,46 +142,44 @@ public:
 		}
 	}
 
-	~ArithDecoder() {}
-
 	u32 getCurrFreq(u32 Scale)
 	{
 		u32 range = (hi - lo) + 1;
-		u32 scaledValue = ((code - lo + 1) * Scale - 1) / range;
-		return scaledValue;
+		u32 ScaledValue = ((code - lo + 1) * Scale - 1) / range;
+		return ScaledValue;
 	}
 
 	void updateDecodeRange(prob Prob)
 	{
 		u32 range = (hi - lo) + 1;
 
-		hi = lo + ((range * Prob.hi) / Prob.count) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.count);
+		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
+		lo = lo + ((range * Prob.lo) / Prob.scale);
 
 		for (;;)
 		{
-			if (hi < OneHalf)
+			if (hi < ONE_HALF)
 			{
 			}
-			else if (lo >= OneHalf)
+			else if (lo >= ONE_HALF)
 			{
-				code -= OneHalf;
-				hi -= OneHalf;
-				lo -= OneHalf;
 			}
-			else if ((lo >= OneFourth) && (hi < ThreeFourths))
+			else if ((lo >= ONE_FOURTH) && (hi < TREE_FOURTHS))
 			{
-				code -= OneFourth;
-				hi -= OneFourth;
-				lo -= OneFourth;
+				code -= ONE_FOURTH;
+				hi -= ONE_FOURTH;
+				lo -= ONE_FOURTH;
 			}
 			else break;
 
 			hi <<= 1;
 			hi++;
 			lo <<= 1;
+			hi &= CODE_MAX_VALUE;
+			lo &= CODE_MAX_VALUE;
 
 			code = shiftBitToCode();
+			code &= CODE_MAX_VALUE;
 		}
 	}
 
