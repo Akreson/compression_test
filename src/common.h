@@ -1,7 +1,6 @@
 #if !defined(COMMON_H)
 #define COMMON_H
 
-#include <iostream>
 #include <fstream>
 #include <cstdio>
 #include <cassert>
@@ -25,8 +24,6 @@ typedef double f64;
 typedef u32 b32;
 typedef u16 b16;
 typedef u8 b8;
-
-typedef uintptr_t umm;
 
 using ByteVec = std::vector<u8>;
 
@@ -200,8 +197,12 @@ Copy(size_t Size, void* DestBase, void* SourceBase)
 struct file_data
 {
 	u8* Data;
-	u64 Size;
+	size_t Size;
+	std::string Name;
 };
+
+#include <iostream>
+#include <filesystem>
 
 file_data
 ReadFile(const char* Name)
@@ -229,6 +230,79 @@ ReadFile(const char* Name)
 
 	fclose(f);
 	return Result;
+}
+
+
+file_data
+ReadEntireFile(const std::string& PathName)
+{
+	file_data Result = {};
+
+	std::ifstream file(PathName, std::ios::binary | std::ios::in);
+	if (file.is_open())
+	{
+		file.seekg(0, std::ios::end);
+		Result.Size = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		Result.Data = new u8[Result.Size];
+		file.read(reinterpret_cast<char*>(Result.Data), Result.Size);
+		if (!file.good())
+		{
+			delete[] Result.Data;
+			Result.Data = nullptr;
+			std::cerr << "error during file reading!\n" << PathName << "\n";
+		}
+	}
+	else
+	{
+		std::cerr << "can't open file: " << PathName << "\n";
+	}
+
+	return Result;
+}
+
+namespace fs = std::filesystem; //C++17
+
+void
+ReadTestFiles(std::vector<file_data>& InputArr, const char* Str)
+{
+	const std::string PathName(Str);
+	const fs::path Path(PathName);
+
+	std::error_code Err;
+	if (fs::is_directory(Path, Err))
+	{
+		for (const auto& Entry : fs::directory_iterator(Path))
+		{
+			if (Entry.is_regular_file())
+			{
+				const auto FileName = Entry.path().string();
+				file_data File = ReadEntireFile(FileName);
+				if (File.Data)
+				{
+					File.Name = Entry.path().filename().string();
+					InputArr.push_back(File);
+				}
+			}
+		}
+	}
+	else
+	{
+		if (Err)
+		{
+			std::cerr << "Error in is_directory: " << Err.message();
+		}
+		else
+		{
+			file_data File = ReadEntireFile(PathName);
+			if (File.Data)
+			{
+				File.Name = Path.filename().string();
+				InputArr.push_back(File);
+			}
+		}
+	}
 }
 
 inline void

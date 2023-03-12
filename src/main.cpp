@@ -16,21 +16,29 @@ main(int argc, char** argv)
 		exit(0);
 	}
 
-	file_data InputFile = ReadFile(argv[1]);
+	//file_data InputFile = ReadFile(argv[1]);
+	std::vector<file_data> InputArr;
+	ReadTestFiles(InputArr, argv[1]);
 
-	//TestACBasicModel(InputFile);
-	TestPPMModel(InputFile);
+	for (auto& InputFile : InputArr)
+	{
+		printf("%s\n", InputFile.Name.c_str());
+		TestACBasicModel(InputFile);
+
+		//TestACBasicModel(InputFile);
+		//TestPPMModel(InputFile);
 	
-	//TestBasicRans8(InputFile);
-	//TestBasicRans32(InputFile);
-	//TestFastEncodeRans8(InputFile);
-	//TestFastEncodeRans32(InputFile);
-	//TestTableDecodeRans16(InputFile);
-	//TestTableInterleavedRans16(InputFile);
-	//TestTableInterleavedRans32(InputFile);
-	//TestSIMDDecodeRans16(InputFile);
-	//TestNormalizationRans32(InputFile);
-	//TestPrecomputeAdaptiveOrder1Rans32(InputFile);
+		//TestBasicRans8(InputFile);
+		//TestBasicRans32(InputFile);
+		//TestFastEncodeRans8(InputFile);
+		//TestFastEncodeRans32(InputFile);
+		//TestTableDecodeRans16(InputFile);
+		//TestTableInterleavedRans16(InputFile);
+		//TestTableInterleavedRans32(InputFile);
+		//TestSIMDDecodeRans16(InputFile);
+		//TestNormalizationRans32(InputFile);
+		//TestPrecomputeAdaptiveOrder1Rans32(InputFile);
+	}
 
 	return 0;
 }
