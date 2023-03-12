@@ -16,8 +16,6 @@ main(int argc, char** argv)
 		exit(0);
 	}
 
-	//file_data InputFile = ReadFile(argv[1]);
-	bit_scan_result a = FindMostSignificantSetBit(234234);
 	std::vector<file_data> InputArr;
 	ReadTestFiles(InputArr, argv[1]);
 
