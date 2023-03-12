@@ -12,21 +12,21 @@ main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		printf("file name missed");
+		printf("file name missed\n");
 		exit(0);
 	}
 
 	//file_data InputFile = ReadFile(argv[1]);
+	bit_scan_result a = FindMostSignificantSetBit(234234);
 	std::vector<file_data> InputArr;
 	ReadTestFiles(InputArr, argv[1]);
 
 	for (auto& InputFile : InputArr)
 	{
-		printf("%s\n", InputFile.Name.c_str());
-		TestACBasicModel(InputFile);
+		printf("---------- %s %lu\n", InputFile.Name.c_str(), InputFile.Size);
 
 		//TestACBasicModel(InputFile);
-		//TestPPMModel(InputFile);
+		TestPPMModel(InputFile);
 	
 		//TestBasicRans8(InputFile);
 		//TestBasicRans32(InputFile);

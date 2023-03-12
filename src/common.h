@@ -31,7 +31,7 @@ static constexpr u32 PtrAlign = sizeof(void*);
 static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
-static constexpr u32 MaxUInt64 = std::numeric_limits<u64>::max();
+static constexpr u64 MaxUInt64 = std::numeric_limits<u64>::max();
 
 static constexpr f64 MaxF64 = std::numeric_limits<f64>::max();
 
@@ -102,20 +102,8 @@ struct bit_scan_result
 
 #if _MSC_VER
 
-#define ALIGN(N) __declspec(align(N))
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
+#define ALIGN(type, name, N) __declspec(align(N)) type name
 #include <intrin.h>
-
-double timer()
-{
-	LARGE_INTEGER ctr, freq;
-	QueryPerformanceCounter(&ctr);
-	QueryPerformanceFrequency(&freq);
-	return 1.0 * ctr.QuadPart / freq.QuadPart;
-}
 
 static inline u64
 MulHi64(u64 a, u64 b)
@@ -132,9 +120,60 @@ FindMostSignificantSetBit(u32 Source)
 	return Result;
 }
 
-#else
-#error "Unsuported compiler"
-//#include <x86intrin.h>
+#elif defined(__GNUC__)
+#include <x86intrin.h>
+
+#define ALIGN(type, name, N) type name __attribute__ ((aligned(N)))
+
+static inline u64
+MulHi64(u64 a, u64 b)
+{
+    return (u64)(((unsigned __int128)a * b) >> 64);
+}
+
+inline bit_scan_result
+FindMostSignificantSetBit(u32 Source)
+{
+	bit_scan_result Result;
+	Result.Succes = Source;
+	Result.Index = __builtin_clz(Source);
+
+	return Result;
+}
+
+#endif
+
+#if defined(_WIN32)
+
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+static inline f64
+timer()
+{
+	LARGE_INTEGER ctr, freq;
+	QueryPerformanceCounter(&ctr);
+	QueryPerformanceFrequency(&freq);
+	return 1.0 * ctr.QuadPart / freq.QuadPart;
+}
+
+#elif defined(__linux__)
+
+#define __STDC_FORMAT_MACROS
+#include <time.h>
+#include <inttypes.h>
+
+static inline f64
+timer()
+{
+    timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 0;
+    u32 status = clock_gettime(CLOCK_MONOTONIC, &ts);
+    Assert(status == 0);
+    return double(ts.tv_sec) + 1.0e-9 * double(ts.tv_nsec);
+}
+
 #endif
 
 inline b32
@@ -155,13 +194,6 @@ AlignSizeForward(u64 Size, u32 Alignment = PtrAlign)
 	u32 AlignOffset = OffsetFromMask ? (Alignment - OffsetFromMask) : 0;
 
 	Result += AlignOffset;
-	return Result;
-}
-
-inline u32
-CountOfSetBits(u32 Value)
-{
-	u32 Result = __popcnt(Value);
 	return Result;
 }
 
@@ -291,7 +323,7 @@ ReadTestFiles(std::vector<file_data>& InputArr, const char* Str)
 	{
 		if (Err)
 		{
-			std::cerr << "Error in is_directory: " << Err.message();
+			std::cerr << "Error in is_directory: " << Err.message() << "\n";
 		}
 		else
 		{
@@ -308,7 +340,7 @@ ReadTestFiles(std::vector<file_data>& InputArr, const char* Str)
 inline void
 PrintCompressionSize(u64 InitSize, u64 CompSize)
 {
-	printf("%d bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
+	printf("%lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
 }
 
 #endif

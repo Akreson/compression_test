@@ -44,6 +44,8 @@ DecompressFile(BasicByteModel& Model, file_data& OutputFile, ByteVec& InputBuffe
 void
 TestACBasicModel(file_data& InputFile)
 {
+	printf("TestACBasicModel");
+
 	BasicByteModel Model;
 	ByteVec CompressBuffer;
 
@@ -106,7 +108,7 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 		if (!(ByteIndex & 0xffff))
 		{
 			//printf("%d %d %d %d\r", ByteIndex, Model.SubAlloc.FreeListCount, Model.SubAlloc.FreeMem >> 10, Model.SubAlloc.FreeMem >> 20);
-			printf("%d\r", ByteIndex);
+			printf("%lu\r", ByteIndex);
 		}
 	}
 }
@@ -114,8 +116,11 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 void
 TestPPMModel(file_data& InputFile)
 {
+	u32 Order = 4;
 	u32 MemLimit = 20 << 20;
-	PPMByte PPMModel(4, MemLimit);
+	printf("TestPPMModel MemLim: %u Order: %u\n", MemLimit, Order);
+
+	PPMByte PPMModel(Order, MemLimit);
 	ByteVec CompressBuffer;
 
 	f64 StartTime = timer();

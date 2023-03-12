@@ -1,3 +1,5 @@
+#include <smmintrin.h>
+
 static constexpr u32 Rans16L = 1 << 16;
 
 struct Rans16Enc
@@ -126,7 +128,7 @@ struct Rans16DecSIMD
 		Assert(IsPowerOf2(CumFreqBound));
 		
 		__m128i State_4x = State.simd;
-		__m128i Slots =_mm_and_epi32(State_4x, _mm_set1_epi32(CumFreqBound - 1));
+		__m128i Slots =_mm_and_si128(State_4x, _mm_set1_epi32(CumFreqBound - 1));
 		u32 Index0 = _mm_cvtsi128_si32(Slots);
 		u32 Index1 = _mm_extract_epi32(Slots, 1);
 		u32 Index2 = _mm_extract_epi32(Slots, 2);
@@ -152,7 +154,7 @@ struct Rans16DecSIMD
 	inline void decodeRenorm(u16** In)
 	{
 #define _ 0x80 // move 0 to this elem on _mm_shuffle_epi8
-		static ALIGN(16) const u8 Shuffles[16][16] =
+		static ALIGN(const u8, Shuffles[16][16], 16) =
 		{
 			{ _,_,_,_, _,_,_,_, _,_,_,_, _,_,_,_ }, // 0000
 			{ 0,1,_,_, _,_,_,_, _,_,_,_, _,_,_,_ }, // 0001
@@ -181,7 +183,7 @@ struct Rans16DecSIMD
 		__m128i GtMask = _mm_cmpgt_epi32(_mm_set1_epi32(Rans16L - BiasVal), BiasedState_4x);
 		u32 Mask = _mm_movemask_ps(_mm_castsi128_ps(GtMask));
 
-		__m128i MemVals = _mm_loadu_epi64(reinterpret_cast<const __m128i*>(*In)); //  4 16bit values
+		__m128i MemVals = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(*In)); //  4 16bit values
 		__m128i ShiftedState_4x = _mm_slli_epi32(State_4x, 16);
 		__m128i ShuffMask = _mm_load_si128(reinterpret_cast<const __m128i*>(Shuffles[Mask]));
 		__m128i NewState_4x = _mm_or_si128(ShiftedState_4x, _mm_shuffle_epi8(MemVals, ShuffMask));

@@ -85,7 +85,7 @@ private:
 	{
 		fillBitBuff(Bit);
 
-		u32 ReverseBit = !Bit & 1;
+		u32 ReverseBit = (!Bit) & 1;
 		while (PendingBits)
 		{
 			fillBitBuff(ReverseBit);

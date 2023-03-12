@@ -8,7 +8,7 @@
 inline void
 PrintRansPerfStats(u64 Clocks, f64 Time, u64 DataSize)
 {
-	printf(" %llu clocks, %.1f clocks/symbol (%5.1f MiB/s)\n", Clocks, 1.0 * Clocks / DataSize, 1.0 * DataSize / (Time * 1048576.0));
+	printf(" %lu clocks, %.1f clocks/symbol (%5.1f MiB/s)\n", Clocks, 1.0 * Clocks / DataSize, 1.0 * DataSize / (Time * 1048576.0));
 }
 
 inline void
@@ -888,6 +888,8 @@ DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq,
 void
 TestNormalizationRans32(file_data& InputFile)
 {
+	printf("TestNormalizationRans32\n");
+
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
@@ -962,8 +964,8 @@ TestNormalizationRans32(file_data& InputFile)
 	}
 }
 
-typedef array2d<u32, 256, 256> freq_val_o1;
-typedef array2d<u16, 256, 257> cdf_val_o1;
+using freq_val_o1 = array2d<u32, 256, 256>;
+using cdf_val_o1 = array2d<u16, 256, 257>;
 
 void
 PrecomputCDFFromEntireData(u8* Data, u64 Size, cdf_val_o1* MixCDF, u32 TargetTotalLog, u32 SymCount)
@@ -995,7 +997,8 @@ PrecomputCDFFromEntireData(u8* Data, u64 Size, cdf_val_o1* MixCDF, u32 TargetTot
 		ZeroSize(TempNormFreq, sizeof(u16) * SymCount);
 	}
 
-	delete TempNormFreq;
+	delete[] TempNormFreq;
+	delete[] Total;
 	delete Order1Freq;
 }
 
@@ -1040,6 +1043,8 @@ InitEqDistCDF(u16* CDF, u32 SymCount, u32 ProbScale)
 void
 TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 {
+	printf("TestPrecomputeAdaptiveOrder1Rans32\n");
+	
 	const u32 AdaptRate = 1;
 	const u32 SymCount = 256;
 	const u32 ProbBit = 14;

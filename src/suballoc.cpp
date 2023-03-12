@@ -31,7 +31,7 @@ class StaticSubAlloc
 	static constexpr u32 FreeMemBlockSize = AlignSizeForward(sizeof(free_mem_block));
 	static constexpr u32 MaxBlockFreeSize = std::numeric_limits<u32>::max() >> 2;
 
-	void* Memory;
+	u8* Memory;
 	union
 	{
 		mem_block* MemBlock;
@@ -49,7 +49,7 @@ public:
 #endif
 
 	StaticSubAlloc() {};
-	StaticSubAlloc(u64 SizeToReserve, u32 MinAllocSize = 1) : Memory(0)
+	StaticSubAlloc(u64 SizeToReserve, u32 MinAllocSize = 1) : Memory(nullptr)
 	{
 		init(SizeToReserve, MinAllocSize);
 	}
@@ -77,7 +77,7 @@ public:
 		
 		TotalSize = SizeToReserve;
 		Memory = new u8[TotalSize];
-		EndOf.MemBlock = reinterpret_cast<mem_block*>(static_cast<u8*>(Memory) + TotalSize);
+		EndOf.MemBlock = reinterpret_cast<mem_block*>(Memory + TotalSize);
 
 		reset();
 	}

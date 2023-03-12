@@ -12,13 +12,14 @@ struct context_data_excl
 struct context;
 
 // TODO: fix for gcc and clang
-#pragma pack(1)
+#pragma pack(push, 1)
 struct context_data
 {
 	context* Next;
 	u8 Freq;
 	u8 Symbol;
 };
+#pragma pack(pop)
 
 struct context
 {
