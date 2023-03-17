@@ -47,9 +47,9 @@ public:
 
 	void encode(prob Prob)
 	{
-		u32 range = (hi - lo) + 1;
-		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.scale);
+		u32 step = ((hi - lo) + 1) / Prob.scale;
+		hi = lo + (step * Prob.hi) - 1;
+		lo = lo + (step * Prob.lo);
 
 		for (;;)
 		{
@@ -136,7 +136,7 @@ public:
 		ReadBytesPos = 0;
 		ReadBitPos = 8;
 
-		for (u32 i = 0; i < 2; ++i)
+		for (u32 i = 0; i < 3; ++i)
 		{
 			code = (code << 8) | getByte();
 		}
@@ -144,17 +144,17 @@ public:
 
 	u32 getCurrFreq(u32 Scale)
 	{
-		u32 range = (hi - lo) + 1;
-		u32 ScaledValue = ((code - lo + 1) * Scale - 1) / range;
+		u32 step = ((hi - lo) + 1) / Scale;
+		u32 ScaledValue = (code - lo) / step;
 		return ScaledValue;
 	}
 
 	void updateDecodeRange(prob Prob)
 	{
-		u32 range = (hi - lo) + 1;
+		u32 step = ((hi - lo) + 1) / Prob.scale;
 
-		hi = lo + ((range * Prob.hi) / Prob.scale) - 1;
-		lo = lo + ((range * Prob.lo) / Prob.scale);
+		hi = lo + (step * Prob.hi) - 1;
+		lo = lo + (step * Prob.lo);
 
 		for (;;)
 		{
