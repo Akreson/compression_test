@@ -16,7 +16,10 @@ public:
 
 	void reset()
 	{
-		MemSet<u16>(CumFreq, ArrayCount(CumFreq), 0);
+		for (u32 i = 0; i < CumFreqArraySize; ++i)
+		{
+			CumFreq[i] = i;
+		}
 	}
 
 	void update(u32 Symbol)

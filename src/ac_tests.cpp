@@ -3,7 +3,7 @@
 #include "ac_models/basic_ac.cpp"
 
 void
-CompressFileStatic(const BasicACByteModel& Model, const file_data& InputFile, ByteVec& OutBuffer)
+CompressFileStatic(BasicACByteModel& Model, const file_data& InputFile, ByteVec& OutBuffer)
 {
 	ArithEncoder Encoder(OutBuffer);
 
@@ -37,7 +37,7 @@ CompressFileStatic(const BasicACByteModel& Model, const file_data& InputFile, By
 }
 
 void
-DecompressFileStatic(const BasicACByteModel& Model, const file_data& OutputFile, ByteVec& InputBuffer, const file_data& InputFile)
+DecompressFileStatic(BasicACByteModel& Model, const file_data& OutputFile, ByteVec& InputBuffer, const file_data& InputFile)
 {
 	ArithDecoder Decoder(InputBuffer);
 	u32 TotalFreqCount = Model.getTotal();
@@ -82,13 +82,13 @@ TestStaticAC(const file_data& InputFile)
 {
 	printf("--TestStaticAC\n");
 	BasicACByteModel Model;
+	ByteVec CompressBuffer;
 
 	for (size_t i = 0; i < InputFile.Size; i++)
 	{
 		Model.update(InputFile.Data[i]);
 	}
-	
-	ByteVec CompressBuffer;
+
 	CompressFileStatic(Model, InputFile, CompressBuffer);
 
 	u64 CompressedSize = CompressBuffer.size();
@@ -99,6 +99,79 @@ TestStaticAC(const file_data& InputFile)
 	OutputFile.Data = new u8[OutputFile.Size];
 
 	DecompressFileStatic(Model, OutputFile, CompressBuffer, InputFile);
+
+	delete[] OutputFile.Data;
+}
+
+
+void
+CompressFileOrder0(BasicACByteModel& Model, const file_data& InputFile, ByteVec& OutBuffer)
+{
+	ArithEncoder Encoder(OutBuffer);
+
+	for (u32 i = 0; i < InputFile.Size; ++i)
+	{
+		prob SymbolProb = Model.getProb(InputFile.Data[i]);
+		Encoder.encode(SymbolProb);
+		Model.update(InputFile.Data[i]); // now update model
+	}
+
+	prob SymbolProb = Model.getEndStreamProb();
+	Encoder.encode(SymbolProb);
+	Encoder.flush();
+}
+
+void
+DecompressFileOrder0(BasicACByteModel& Model, const file_data& OutputFile, ByteVec& InputBuffer, const file_data& InputFile)
+{
+	ArithDecoder Decoder(InputBuffer);
+
+	u64 ByteIndex = 0;
+	for (;;)
+	{
+		u32 DecodedFreq = Decoder.getCurrFreq(Model.getTotal());
+
+		u32 DecodedSymbol;
+		prob Prob = Model.getSymbolFromFreq(DecodedFreq, &DecodedSymbol);
+
+		if (DecodedSymbol == BasicACByteModel::EndOfStreamSymbolIndex) break;
+
+		Assert(DecodedSymbol <= 255);
+		Assert(ByteIndex <= OutputFile.Size);
+		Assert(InputFile.Data[ByteIndex] == DecodedSymbol);
+
+		Decoder.updateDecodeRange(Prob);
+		Model.update(DecodedSymbol); // now update model
+
+		OutputFile.Data[ByteIndex++] = static_cast<u8>(DecodedSymbol);
+	}
+}
+
+void
+TestOrder0AC(const file_data & InputFile)
+{
+	printf("--TestOrder0AC\n");
+	BasicACByteModel Model;
+	ByteVec CompressBuffer;
+
+	f64 StartTime = timer();
+	CompressFileOrder0(Model, InputFile, CompressBuffer);
+	f64 EndTime = timer() - StartTime;
+
+	Model.reset();
+	u64 CompressedSize = CompressBuffer.size();
+
+	PrintCompressionSize(InputFile.Size, CompressedSize);
+	printf(" EncTime %.3f\n", EndTime);
+
+	file_data OutputFile;
+	OutputFile.Size = InputFile.Size;
+	OutputFile.Data = new u8[OutputFile.Size];
+
+	StartTime = timer();
+	DecompressFileOrder0(Model, OutputFile, CompressBuffer, InputFile);
+	EndTime = timer() - StartTime;
+	printf(" DecTime %.3f\n", EndTime);
 
 	delete[] OutputFile.Data;
 }

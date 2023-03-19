@@ -30,6 +30,7 @@ main(int argc, char** argv)
 		
 		TestHuff1(InputFile);
 		TestStaticAC(InputFile);
+		TestOrder0AC(InputFile);
 
 		ZeroSize(ByteCount, sizeof(ByteCount));
 		printf("\n");
