@@ -1,6 +1,7 @@
 
 #include "ac/ac.cpp"
 #include "ac_models/basic_ac.cpp"
+#include "ac_models/simple_order1_ac.cpp"
 
 void
 CompressFileStatic(BasicACByteModel& Model, const file_data& InputFile, ByteVec& OutBuffer)
@@ -170,6 +171,78 @@ TestOrder0AC(const file_data & InputFile)
 
 	StartTime = timer();
 	DecompressFileOrder0(Model, OutputFile, CompressBuffer, InputFile);
+	EndTime = timer() - StartTime;
+	printf("DecTime %.3f\n", EndTime);
+
+	delete[] OutputFile.Data;
+}
+
+void
+CompressFileOrder1(SimpleOrder1AC& Model, const file_data& InputFile, ByteVec& OutBuffer)
+{
+	ArithEncoder Encoder(OutBuffer);
+
+	for (u32 i = 0; i < InputFile.Size; ++i)
+	{
+		prob SymbolProb = Model.getProb(InputFile.Data[i]);
+		Encoder.encode(SymbolProb);
+		Model.update(InputFile.Data[i]);
+	}
+
+	prob SymbolProb = Model.getEndStreamProb();
+	Encoder.encode(SymbolProb);
+	Encoder.flush();
+}
+
+void
+DecompressFileOrder1(SimpleOrder1AC& Model, file_data& OutputFile, ByteVec& InputBuffer, const file_data& InputFile)
+{
+	ArithDecoder Decoder(InputBuffer);
+
+	u64 ByteIndex = 0;
+	for (;;)
+	{
+		u32 DecodedFreq = Decoder.getCurrFreq(Model.getTotal());
+
+		u32 DecodedSymbol;
+		prob Prob = Model.getSymbolFromFreq(DecodedFreq, &DecodedSymbol);
+
+		if (DecodedSymbol == SimpleOrder1AC::EndOfStreamSymbolIndex) break;
+
+		Assert(ByteIndex <= OutputFile.Size);
+		Assert(InputFile.Data[ByteIndex] == DecodedSymbol);
+
+		Decoder.updateDecodeRange(Prob);
+		Model.update(DecodedSymbol);
+
+		OutputFile.Data[ByteIndex++] = DecodedSymbol;
+	}
+}
+
+void
+TestSimpleOrder1AC(const file_data& InputFile)
+{
+	printf("--TestSimpleOrder1AC\n");
+
+	SimpleOrder1AC Model;
+	ByteVec CompressBuffer;
+
+	f64 StartTime = timer();
+	CompressFileOrder1(Model, InputFile, CompressBuffer);
+	f64 EndTime = timer() - StartTime;
+
+	Model.reset();
+	u64 CompressedSize = CompressBuffer.size();
+
+	PrintCompressionSize(InputFile.Size, CompressedSize);
+	printf(" EncTime %.3f\n", EndTime);
+
+	file_data OutputFile;
+	OutputFile.Size = InputFile.Size;
+	OutputFile.Data = new u8[OutputFile.Size];
+
+	StartTime = timer();
+	DecompressFileOrder1(Model, OutputFile, CompressBuffer, InputFile);
 	EndTime = timer() - StartTime;
 	printf(" DecTime %.3f\n", EndTime);
 

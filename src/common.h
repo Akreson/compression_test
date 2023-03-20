@@ -35,7 +35,6 @@ static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
 static constexpr u32 MaxUInt32 = std::numeric_limits<u32>::max();
 static constexpr u64 MaxUInt64 = std::numeric_limits<u64>::max();
-
 static constexpr f64 MaxF64 = std::numeric_limits<f64>::max();
 
 static constexpr u32 RUNS_COUNT = 5;

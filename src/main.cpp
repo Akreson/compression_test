@@ -28,9 +28,10 @@ main(int argc, char** argv)
 		f64 FileByteH = Entropy(ByteCount, 256);
 		printf("---------- %s %lu H:%.3f\n", InputFile.Name.c_str(), InputFile.Size, FileByteH);
 		
-		TestHuff1(InputFile);
-		TestStaticAC(InputFile);
-		TestOrder0AC(InputFile);
+		//TestHuff1(InputFile);
+		//TestStaticAC(InputFile);
+		//TestOrder0AC(InputFile);
+		TestSimpleOrder1AC(InputFile);
 
 		ZeroSize(ByteCount, sizeof(ByteCount));
 		printf("\n");
