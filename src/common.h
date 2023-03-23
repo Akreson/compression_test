@@ -118,6 +118,22 @@ PrintCompressionSize(size_t InitSize, size_t CompSize)
 	printf(" %lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
 }
 
+inline constexpr size_t
+AlignSizeForward(size_t Size, u32 Alignment = PtrAlign)
+{
+	Assert(!(Alignment & (Alignment - 1)));
+
+	u32 Result = Size;
+	u32 AlignMask = Alignment - 1;
+	u32 OffsetFromMask = (Size & AlignMask);
+	u32 AlignOffset = OffsetFromMask ? (Alignment - OffsetFromMask) : 0;
+
+	Result += AlignOffset;
+	return Result;
+}
+
+#define ZeroStruct(Instance) ZeroSize((void *)&(Instance), sizeof(Instance))
+
 template<typename T> inline void
 CountByte(T* Freq, const u8* Input, size_t Size)
 {

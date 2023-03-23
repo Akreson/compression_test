@@ -3,10 +3,10 @@
 #include <cmath>
 #include "common.h"
 #include "mem.cpp"
+#include "suballoc.cpp"
 
 #include "huff_tests.cpp"
 #include "ac_tests.cpp"
-
 
 int
 main(int argc, char** argv)
@@ -31,7 +31,8 @@ main(int argc, char** argv)
 		//TestHuff1(InputFile);
 		//TestStaticAC(InputFile);
 		//TestOrder0AC(InputFile);
-		TestSimpleOrder1AC(InputFile);
+		//TestSimpleOrder1AC(InputFile);
+		TestPPMModel(InputFile);
 
 		ZeroSize(ByteCount, sizeof(ByteCount));
 		printf("\n");
