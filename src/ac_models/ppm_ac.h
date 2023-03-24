@@ -35,19 +35,4 @@ struct decode_symbol_result
 	u32 Symbol;
 };
 
-struct symbol_search_result
-{
-	b32 Success;
-	u32 Index;
-};
-
-struct find_context_result
-{
-	context* Context;
-	u16 SeqIndex;
-	u16 ChainMissIndex;
-	b16 IsNotComplete;
-	b16 SymbolMiss;
-};
-
 #endif

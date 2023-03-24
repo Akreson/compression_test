@@ -3,16 +3,13 @@
 class PPMByte
 {
 	context_data_excl* Exclusion;
-	context* StaticContext; // order -1
-	context* Order0;
-	context* LastUsed;
+	context* MaxContext;
+	context* MinContext;
+	context_data** ContextStack;
+	context_data* LastEncSym;
 
-	u32* ContextSeq;
-	find_context_result* ContextStack;
-
-	u32 OrderCount;
-	u32 CurrMaxOrder;
-	u32 SeqLookAt;
+	u16 OrderCount;
+	u16 LastMaskedCount;
 
 public:
 	StaticSubAlloc<32> SubAlloc;
@@ -35,156 +32,76 @@ public:
 
 	void encode(ArithEncoder& Encoder, u32 Symbol)
 	{
-		SeqLookAt = 0;
-		u32 OrderLooksLeft = CurrMaxOrder + 1;
+		prob Prob = {};
+		b32 Success = getEncodeProb(Prob, Symbol);
 
-		context* Prev = 0;
-		while (OrderLooksLeft)
+		calcEncBits(Prob, Success);
+		Encoder.encode(Prob);
+
+		while (!Success)
 		{
-			find_context_result Find = {};
-
-			if (Prev)
+			do
 			{
-				Find.Context = Prev;
-			}
-			else
-			{
-				findContext(Find);
-			}
+				MinContext = MinContext->Prev;
+			} while (MinContext && (MinContext->SymbolCount == LastMaskedCount));
 
-			if (!Find.IsNotComplete)
-			{
-				Assert(Find.Context->TotalFreq);
+			if (!MinContext) break;
 
-				b32 Success = encodeSymbol(Encoder, Find.Context, Symbol);
-				if (Success)
-				{
-					Assert(Find.Context->TotalFreq);
-					LastUsed = Find.Context;
-					break;
-				}
+			Success = getEncodeProb(Prob, Symbol);
 
-				Prev = Find.Context->Prev;
-				updateExclusionData(Find.Context);
-			}
-
-			ContextStack[SeqLookAt++] = Find;
-			OrderLooksLeft--;
-		}
-
-		if (!OrderLooksLeft)
-		{
-			LastUsed = StaticContext;
-
-			prob Prob = {};
-			b32 Success = getEncodeProb(StaticContext, Prob, Symbol);
-
-			Assert(Success);
-			Assert(SeqLookAt);
-
-			Encoder.encode(Prob);
 			calcEncBits(Prob, Success);
+			Encoder.encode(Prob);
 		}
 
-		update(Symbol);
-		updateOrderSeq(Symbol);
+		if (MinContext == MaxContext)
+		{
+			MinContext = MaxContext = LastEncSym->Next;
+		}
+		else if (MinContext)
+		{
+			update();
+		}
 
 		clearExclusion();
 	}
 
 	u32 decode(ArithDecoder& Decoder)
 	{
-		u32 ResultSymbol;
+		prob Prob = {};
+		decode_symbol_result DecSym;
 
-		SeqLookAt = 0;
-		u32 OrderLooksLeft = CurrMaxOrder + 1;
+		DecSym = getSymbolFromFreq(Decoder);
+		Decoder.updateDecodeRange(DecSym.Prob);
 
-		context* Prev = 0;
-		while (OrderLooksLeft)
+		while (DecSym.Symbol == EscapeSymbol)
 		{
-			find_context_result Find = {};
-
-			if (Prev)
+			do
 			{
-				Find.Context = Prev;
-			}
-			else
-			{
-				findContext(Find);
-			}
+				MinContext = MinContext->Prev;
+			} while (MinContext && (MinContext->SymbolCount == LastMaskedCount));
 
-			if (!Find.IsNotComplete)
-			{
-				Assert(Find.Context->TotalFreq)
+			if (!MinContext) break;
 
-				b32 Success = decodeSymbol(Decoder, Find.Context, &ResultSymbol);
-				if (Success)
-				{
-					Assert(Find.Context->TotalFreq);
-					LastUsed = Find.Context;
-					break;
-				}
-
-				Prev = Find.Context->Prev;
-				updateExclusionData(Find.Context);
-			}
-
-			ContextStack[SeqLookAt++] = Find;
-			OrderLooksLeft--;
+			DecSym = getSymbolFromFreq(Decoder);
+			Decoder.updateDecodeRange(DecSym.Prob);
 		}
 
-		if (!OrderLooksLeft)
+		if (MinContext == MaxContext)
 		{
-			LastUsed = StaticContext;
-			decode_symbol_result DecodedSymbol = getSymbolFromFreq(Decoder, StaticContext);
-			ResultSymbol = DecodedSymbol.Symbol;
-
-			// if it not end of stream
-			if (ResultSymbol != EscapeSymbol)
-			{
-				Decoder.updateDecodeRange(DecodedSymbol.Prob);
-				Assert(SeqLookAt);
-			}
+			MinContext = MaxContext = LastEncSym->Next;
 		}
-
-		update(ResultSymbol);
-		updateOrderSeq(ResultSymbol);
+		else if (MinContext)
+		{
+			update();
+		}
 
 		clearExclusion();
-		return ResultSymbol;
+		return DecSym.Symbol;
 	}
 
 	void encodeEndOfStream(ArithEncoder& Encoder)
 	{
-		u32 OrderIndex = SeqLookAt = 0;
-
-		context* EscContext = 0;
-		u32 OrderLooksLeft = CurrMaxOrder + 1;
-		while (OrderLooksLeft)
-		{
-			find_context_result Find = findContext();
-
-			if (!Find.IsNotComplete)
-			{
-				EscContext = Find.Context;
-				break;
-			}
-
-			SeqLookAt++;
-			OrderLooksLeft--;
-		}
-
-		while (EscContext->Prev)
-		{
-			encodeSymbol(Encoder, EscContext, EscapeSymbol);
-			updateExclusionData(EscContext);
-			Assert(EscContext->Prev);
-			EscContext = EscContext->Prev;
-		}
-
-		prob Prob = {};
-		getEncodeProb(StaticContext, Prob, EscapeSymbol);
-		Encoder.encode(Prob);
+		encode(Encoder, PPMByte::EscapeSymbol);
 
 #ifdef _DEBUG
 		SymEnc = SymEnc / 8.0;
@@ -240,257 +157,103 @@ private:
 		return Result;
 	}
 
-// DECODE STYLE
-#if 1
-	decode_symbol_result getSymbolFromFreq(ArithDecoder& Decoder, context* Context)
+	decode_symbol_result getSymbolFromFreq(ArithDecoder& Decoder)
 	{
 		decode_symbol_result Result = {};
 
-		Result.Prob.scale = getExcludedTotal(Context) + Context->EscapeFreq;
+		Result.Prob.scale = getExcludedTotal(MinContext) + MinContext->EscapeFreq;
 		u32 DecodeFreq = Decoder.getCurrFreq(Result.Prob.scale);
 
 		u32 CumFreq = 0;
 		u32 SymbolIndex = 0;
-		for (; SymbolIndex < Context->SymbolCount; ++SymbolIndex)
+		for (; SymbolIndex < MinContext->SymbolCount; ++SymbolIndex)
 		{
-			context_data* Data = Context->Data + SymbolIndex;
+			context_data* Data = MinContext->Data + SymbolIndex;
 			u32 ModFreq = Data->Freq & Exclusion->Data[Data->Symbol];
 			CumFreq += ModFreq;
 
 			if (CumFreq > DecodeFreq) break;
 		}
 
-		if (SymbolIndex < Context->SymbolCount)
+		if (SymbolIndex < MinContext->SymbolCount)
 		{
-			context_data* MatchSymbol = Context->Data + SymbolIndex;
+			context_data* MatchSymbol = MinContext->Data + SymbolIndex;
+			LastEncSym = MatchSymbol;
 			
 			Result.Prob.hi = CumFreq;
 			Result.Prob.lo = CumFreq - MatchSymbol->Freq;
 			Result.Symbol = MatchSymbol->Symbol;
 
 			MatchSymbol->Freq += 1;
-			Context->TotalFreq += 1;
+			MinContext->TotalFreq += 1;
 
-			if (Context->TotalFreq >= FREQ_MAX_VALUE)
+			if (MinContext->TotalFreq >= FREQ_MAX_VALUE)
 			{
-				rescale(Context);
+				rescale(MinContext);
 			}
 		}
 		else
 		{
 			Result.Prob.hi = Result.Prob.scale;
-			Result.Prob.lo = Result.Prob.scale - Context->EscapeFreq;
+			Result.Prob.lo = Result.Prob.scale - MinContext->EscapeFreq;
 			Result.Symbol = EscapeSymbol;
+			LastMaskedCount = MinContext->SymbolCount;
+			updateExclusionData(MinContext);
 		}
 
 		return Result;
 	}
-#else // DECODE STYLE
-	decode_symbol_result getSymbolFromFreq(ArithDecoder& Decoder, context* Context)
-	{
-		decode_symbol_result Result = {};
 
-		context_data* MaskArr[256];
-		context_data** MaskPtr = MaskArr;
-		context_data* LastPastOne = Context->Data + Context->SymbolCount;
-		context_data* DataPtr = Context->Data;
-
-		u32 MaskedTotal = 0;
-		for (; DataPtr != LastPastOne; DataPtr++)
-		{
-			if (Exclusion->Data[DataPtr->Symbol])
-			{
-				MaskedTotal += DataPtr->Freq;
-				*MaskPtr++ = DataPtr;
-			}
-		}
-
-		Result.Prob.scale = MaskedTotal + Context->EscapeFreq;
-		u32 DecodeFreq = Decoder.getCurrFreq(Result.Prob.scale);
-		
-		u32 CumFreq = 0;
-		context_data* MatchSymbol = 0;
-		u32 MaskedCount = MaskPtr - MaskArr;
-		if (MaskedCount)
-		{
-			MaskPtr = MaskArr;
-			DataPtr = *MaskArr;
-
-			do
-			{
-				CumFreq += DataPtr->Freq;
-				if (CumFreq > DecodeFreq)
-				{
-					MatchSymbol = DataPtr;
-					break;
-				};
-
-				DataPtr = *++MaskPtr;
-			} while (--MaskedCount);
-		}
-
-		if (MatchSymbol)
-		{
-			Result.Prob.hi = CumFreq;
-			Result.Prob.lo = CumFreq - MatchSymbol->Freq;
-			Result.Symbol = MatchSymbol->Symbol;
-
-			MatchSymbol->Freq += 1;
-			Context->TotalFreq += 1;
-
-			if (Context->TotalFreq >= FREQ_MAX_VALUE)
-			{
-				rescale(Context);
-			}
-		}
-		else
-		{
-			Result.Prob.hi = Result.Prob.scale;
-			Result.Prob.lo = Result.Prob.scale - Context->EscapeFreq;
-			Result.Symbol = EscapeSymbol;
-		}
-
-		return Result;
-	}
-#endif // DECODE STYLE
-
-	b32 decodeSymbol(ArithDecoder& Decoder, context* Context, u32* ResultSymbol)
-	{
-		b32 Success = false;
-		decode_symbol_result Decoded = getSymbolFromFreq(Decoder, Context);
-		Decoder.updateDecodeRange(Decoded.Prob);
-
-		if (Decoded.Symbol != EscapeSymbol)
-		{
-			Success = true;
-			*ResultSymbol = Decoded.Symbol;
-		}
-
-		calcEncBits(Decoded.Prob, Success);
-
-		return Success;
-	}
-
-	b32 getEncodeProb(context* Context, prob& Prob, u32 Symbol)
+	b32 getEncodeProb(prob& Prob, u32 Symbol)
 	{
 		b32 Result = false;
 
 		u32 CumFreqLo = 0;
 		u32 SymbolIndex = 0;
-		for (; SymbolIndex < Context->SymbolCount; ++SymbolIndex)
+		for (; SymbolIndex < MinContext->SymbolCount; ++SymbolIndex)
 		{
-			context_data* Data = Context->Data + SymbolIndex;
+			context_data* Data = MinContext->Data + SymbolIndex;
 			if (Data->Symbol == Symbol) break;
 
 			CumFreqLo += Data->Freq & Exclusion->Data[Data->Symbol];
 		}
 
 		Prob.lo = CumFreqLo;
-		if (SymbolIndex < Context->SymbolCount)
+		if (SymbolIndex < MinContext->SymbolCount)
 		{
-			context_data* MatchSymbol = Context->Data + SymbolIndex;
+			context_data* MatchSymbol = MinContext->Data + SymbolIndex;
+			LastEncSym = MatchSymbol;
+
 			Prob.hi = Prob.lo + MatchSymbol->Freq;
 
 			u32 CumFreqHi = Prob.hi;
-			for (u32 i = SymbolIndex + 1; i < Context->SymbolCount; ++i)
+			for (u32 i = SymbolIndex + 1; i < MinContext->SymbolCount; ++i)
 			{
-				context_data* Data = Context->Data + i;
+				context_data* Data = MinContext->Data + i;
 				u32 Freq = Data->Freq & Exclusion->Data[Data->Symbol];
 				CumFreqHi += Freq;
 			}
 
-			Prob.scale = CumFreqHi + Context->EscapeFreq;
+			Prob.scale = CumFreqHi + MinContext->EscapeFreq;
 
 			MatchSymbol->Freq += 1;
-			Context->TotalFreq += 1;
+			MinContext->TotalFreq += 1;
 
-			if (Context->TotalFreq >= FREQ_MAX_VALUE)
+			if (MinContext->TotalFreq >= FREQ_MAX_VALUE)
 			{
-				rescale(Context);
+				rescale(MinContext);
 			}
 
 			Result = true;
 		}
 		else
 		{
-			Prob.hi = Prob.scale = Prob.lo + Context->EscapeFreq;
+			Prob.hi = Prob.scale = Prob.lo + MinContext->EscapeFreq;
+			LastMaskedCount = MinContext->SymbolCount;
+			updateExclusionData(MinContext);
 		}
 
 		return Result;
-	}
-
-	b32 encodeSymbol(ArithEncoder& Encoder, context* Context, u32 Symbol)
-	{
-		Assert(Context->EscapeFreq);
-
-		b32 Success = false;
-		prob Prob = {};
-
-		Success = getEncodeProb(Context, Prob, Symbol);
-		Encoder.encode(Prob);
-
-		calcEncBits(Prob, Success);
-
-		return Success;
-	}
-
-	symbol_search_result findSymbolIndex(context* Context, u32 Symbol)
-	{
-		symbol_search_result Result = {};
-
-		for (u32 i = 0; i < Context->SymbolCount; ++i)
-		{
-			if (Context->Data[i].Symbol == Symbol)
-			{
-				Result.Index = i;
-				Result.Success = true;
-				break;
-			}
-		}
-
-		return Result;
-	}
-
-	void findContext(find_context_result& Result)
-	{
-		context* CurrContext = Order0;
-
-		u32 LookAtOrder = SeqLookAt; // from
-		while (LookAtOrder < CurrMaxOrder)
-		{
-			u32 SymbolAtContext = ContextSeq[LookAtOrder];
-
-			Assert(SymbolAtContext < 256);
-			Assert(CurrContext->Data)
-
-			symbol_search_result Search = findSymbolIndex(CurrContext, SymbolAtContext);
-			if (!Search.Success)
-			{
-				Result.SymbolMiss = true;
-				break;
-			}
-
-			context_data* Data = CurrContext->Data + Search.Index;
-			if (!Data->Next)
-			{
-				Result.ChainMissIndex = Search.Index;
-				break;
-			}
-
-			CurrContext = Data->Next;
-			LookAtOrder++;
-		}
-
-		Result.Context = CurrContext;
-		Result.SeqIndex = LookAtOrder;
-		Result.IsNotComplete = CurrMaxOrder - LookAtOrder;
-	}
-
-	inline find_context_result findContext(void)
-	{
-		find_context_result Find = {};
-		findContext(Find);
-		return Find;
 	}
 
 	//NOTE: ad hoc value
@@ -513,61 +276,38 @@ private:
 		return Result;
 	}
 
-	b32 addSymbol(context* Context, u32 Symbol)
+	context_data* allocSymbol(context* Context)
 	{
-		b32 Result = false;
+		context_data* Result = nullptr;
 
 		u32 PreallocSymbol = getContextDataPreallocCount(Context);
 		Context->Data = SubAlloc.realloc(Context->Data, ++Context->SymbolCount, PreallocSymbol);
 
 		if (Context->Data)
 		{
-			context_data* Data = Context->Data + (Context->SymbolCount - 1);
-			Data->Freq = 1;
-			Data->Symbol = Symbol;
-			Data->Next = nullptr;
-
-			Context->TotalFreq += 1;
-			Context->EscapeFreq += 1;
-
-			Result = true;
+			Result = Context->Data + (Context->SymbolCount - 1);
+			ZeroStruct(*Result);
 		}
 
 		return Result;
 	}
 
-	b32 initContext(context* Context, u32 Symbol)
+	context* allocContext(context_data* From, context* Prev)
 	{
-		Assert(Context);
-		ZeroStruct(*Context);
-
-		b32 Result = false;
-
-		Context->Data = SubAlloc.alloc<context_data>(2);
-		if (Context->Data)
-		{
-			Context->TotalFreq = 1;
-			Context->EscapeFreq = 1;
-			Context->SymbolCount = 1;
-
-			context_data* Data = Context->Data;
-			Data->Freq = 1;
-			Data->Symbol = Symbol;
-			Data->Next = nullptr;
-
-			Result = true;
-		};
-
-		return Result;
-	}
-
-	context* allocContext(u32 Symbol)
-	{
-		context* New = SubAlloc.alloc<context>(1);
+		context* New = nullptr;
+		New = SubAlloc.alloc<context>(1);
 		if (New)
 		{
-			ZeroStruct(*New);
-			if (!initContext(New, Symbol))
+			New->Data = SubAlloc.alloc<context_data>(2);
+			if (New->Data)
+			{
+				From->Next = New;
+				New->Prev = Prev;
+				New->TotalFreq = 1;
+				New->EscapeFreq = 1;
+				New->SymbolCount = 0;
+			}
+			else
 			{
 				New = nullptr;
 			}
@@ -576,85 +316,67 @@ private:
 		return New;
 	}
 
-	void update(u32 Symbol)
+	void update()
 	{
-		context* Prev = LastUsed;
+		context_data** StackPtr = ContextStack;
+		context* ContextAt = MaxContext;
 
-		u32 ProcessStackIndex = SeqLookAt;
-		for (; ProcessStackIndex > 0; --ProcessStackIndex)
+		u16 InitFreq = 1;
+
+		if (ContextAt->SymbolCount == 0)
 		{
-			find_context_result* Update = ContextStack + (ProcessStackIndex - 1);
-			context* ContextAt = Update->Context;
-
-			if (Update->IsNotComplete)
+			do
 			{
-				context_data* BuildContextFrom = 0;
+				context_data* First = ContextAt->Data;
+				First->Symbol = LastEncSym->Symbol;
+				First->Freq = InitFreq;
 
-				if (Update->SymbolMiss)
-				{
-					if (!addSymbol(ContextAt, ContextSeq[Update->SeqIndex])) break;
+				ContextAt->SymbolCount = 1;
+				ContextAt = ContextAt->Prev;
+				*StackPtr++ = First;
+			} while (ContextAt->SymbolCount == 0);
+		}
 
-					BuildContextFrom = ContextAt->Data + (ContextAt->SymbolCount - 1);
-				}
-				else
-				{
-					BuildContextFrom = ContextAt->Data + Update->ChainMissIndex;
-				}
+		context_data* NewSym;
+		for (; ContextAt != MinContext; ContextAt = ContextAt->Prev, *StackPtr++ = NewSym)
+		{
+			NewSym = allocSymbol(ContextAt);
+			if (!NewSym)
+			{
+				ContextAt = nullptr;
+				break;
+			}
 
-				u32 SeqAt = Update->SeqIndex + 1;
-				while (SeqAt < CurrMaxOrder)
-				{
-					context* Next = allocContext(ContextSeq[SeqAt]);
-					if (!Next) break;
+			NewSym->Freq = InitFreq;
+			NewSym->Symbol = LastEncSym->Symbol;
+			ContextAt->EscapeFreq += 1;
+			ContextAt->TotalFreq += 1;
+		}
 
-					ContextAt = BuildContextFrom->Next = Next;
-					BuildContextFrom = ContextAt->Data;
-					SeqAt++;
-				}
-
-				if (SeqAt != CurrMaxOrder) break;
-
-				context* EndSeqContext = allocContext(Symbol);
-				if (!EndSeqContext) break;
-
-				ContextAt = BuildContextFrom->Next = EndSeqContext;
+		if (ContextAt)
+		{
+			if (LastEncSym->Next)
+			{
+				ContextAt = MinContext = LastEncSym->Next;
 			}
 			else
 			{
-				Assert(ContextAt->Data);
-				if (!addSymbol(ContextAt, Symbol)) break;
+				ContextAt = allocContext(LastEncSym, ContextAt);
 			}
-
-			ContextAt->Prev = Prev;
-			Prev = ContextAt;
 		}
 
-		if (ProcessStackIndex)
+		if (ContextAt)
 		{
-			// memory not enough, restart model
-			reset();
-		}
-	}
-
-	inline void updateOrderSeq(u32 Symbol)
-	{
-		u32 UpdateSeqIndex = CurrMaxOrder;
-
-		if (CurrMaxOrder == OrderCount)
-		{
-			UpdateSeqIndex--;
-
-			for (u32 i = 0; i < (OrderCount - 1); ++i)
+			while (--StackPtr != ContextStack)
 			{
-				ContextSeq[i] = ContextSeq[i + 1];
+				ContextAt = allocContext(*StackPtr, ContextAt);
+				if (!ContextAt) break;
 			}
-		}
-		else
-		{
-			CurrMaxOrder++;
+
+			MaxContext = (*StackPtr)->Next = ContextAt;
 		}
 
-		ContextSeq[UpdateSeqIndex] = Symbol;
+		if (!ContextAt) reset();
 	}
 
 	inline void clearExclusion()
@@ -674,33 +396,38 @@ private:
 
 	void initModel()
 	{
-		CurrMaxOrder = 0;
-
-		StaticContext = SubAlloc.alloc<context>(1);
-		ZeroStruct(*StaticContext);
-
-		StaticContext->Data = SubAlloc.alloc<context_data>(256);
-		StaticContext->EscapeFreq = 1;
-		StaticContext->TotalFreq = 256;
-		StaticContext->SymbolCount = 256;
-
-		for (u32 i = 0; i < StaticContext->SymbolCount; ++i)
-		{
-			StaticContext->Data[i].Freq = 1;
-			StaticContext->Data[i].Symbol = i;
-			StaticContext->Data[i].Next = nullptr;
-		}
-
 		Exclusion = SubAlloc.alloc<context_data_excl>(1);
 		clearExclusion();
 
-		Order0 = allocContext(0);
-		Order0->Prev = StaticContext;
+		ContextStack = SubAlloc.alloc<context_data*>(OrderCount);
 
-		// last encoded symbols
-		ContextSeq = SubAlloc.alloc<u32>(OrderCount);
+		context* Order0 = SubAlloc.alloc<context>(1);
+		Assert(Order0);
+		ZeroStruct(*Order0);
 
-		// max symbol seq + context for that seq
-		ContextStack = SubAlloc.alloc<find_context_result>(OrderCount + 1);
+		MaxContext = Order0;
+		Order0->TotalFreq = 257;
+		Order0->SymbolCount = 256;
+		Order0->EscapeFreq = 1;
+		Order0->Data = SubAlloc.alloc<context_data>(256);
+
+		for (u32 i = 0; i < Order0->SymbolCount; ++i)
+		{
+			Order0->Data[i].Freq = 1;
+			Order0->Data[i].Symbol = i;
+			Order0->Data[i].Next = nullptr;
+		}
+
+		for (u32 OrderIndex = 1;; OrderIndex++)
+		{
+			MaxContext = allocContext(MaxContext->Data, MaxContext);
+			if (OrderIndex == OrderCount) break;
+
+			MaxContext->SymbolCount = 1;
+			MaxContext->Data[0].Freq = 1;
+			MaxContext->Data[0].Symbol = 0;
+		}
+
+		MinContext = Order0;
 	}
 };
