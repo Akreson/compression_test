@@ -2,7 +2,7 @@
 #define AC_PARAMS_H
 
 static constexpr u32 CODE_BITS = 24;
-static constexpr u32 FREQ_BITS = 14;
+static constexpr u32 FREQ_BITS = 15;
 static constexpr u32 FREQ_VALUE_BITS = 14;
 static constexpr u32 PROB_MAX_VALUE = (1 << FREQ_BITS);
 static constexpr u32 CODE_MAX_VALUE = (1 << CODE_BITS) - 1;

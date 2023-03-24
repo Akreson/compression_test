@@ -28,7 +28,7 @@ public:
 		EscEnc = 0.0;
 	}
 
-	~PPMByte() {}
+	~PPMByte() { }
 
 	void encode(ArithEncoder& Encoder, u32 Symbol)
 	{
@@ -68,10 +68,8 @@ public:
 	u32 decode(ArithDecoder& Decoder)
 	{
 		prob Prob = {};
-		decode_symbol_result DecSym;
-
-		DecSym = getSymbolFromFreq(Decoder);
-		Decoder.updateDecodeRange(DecSym.Prob);
+		decode_symbol_result DecSym = getSymbolFromFreq(Decoder);
+		Decoder.updateDecodeRange(DecSym.Prob); 
 
 		while (DecSym.Symbol == EscapeSymbol)
 		{
@@ -184,10 +182,10 @@ private:
 			Result.Prob.lo = CumFreq - MatchSymbol->Freq;
 			Result.Symbol = MatchSymbol->Symbol;
 
-			MatchSymbol->Freq += 1;
-			MinContext->TotalFreq += 1;
+			MatchSymbol->Freq += 4;
+			MinContext->TotalFreq += 4;
 
-			if (MinContext->TotalFreq >= FREQ_MAX_VALUE)
+			if (MatchSymbol->Freq > MAX_FREQ)
 			{
 				rescale(MinContext);
 			}
@@ -236,10 +234,10 @@ private:
 
 			Prob.scale = CumFreqHi + MinContext->EscapeFreq;
 
-			MatchSymbol->Freq += 1;
-			MinContext->TotalFreq += 1;
+			MatchSymbol->Freq += 4;
+			MinContext->TotalFreq += 4;
 
-			if (MinContext->TotalFreq >= FREQ_MAX_VALUE)
+			if (MatchSymbol->Freq > MAX_FREQ)
 			{
 				rescale(MinContext);
 			}
@@ -321,7 +319,7 @@ private:
 		context_data** StackPtr = ContextStack;
 		context* ContextAt = MaxContext;
 
-		u16 InitFreq = 1;
+		u8 InitFreq = 1;
 
 		if (ContextAt->SymbolCount == 0)
 		{
