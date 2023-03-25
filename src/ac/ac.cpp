@@ -13,12 +13,12 @@ public:
 
 	ArithEncoder() = delete;
 	ArithEncoder(ByteVec& OutBuffer) :
-		Bytes(OutBuffer), lo(0), hi(CodeMaxValue), PendingBits(0), BitBuff(0), BitAccumCount(8) {}
+		Bytes(OutBuffer), lo(0), hi(CODE_MAX_VALUE), PendingBits(0), BitBuff(0), BitAccumCount(8) {}
 
 	~ArithEncoder()
 	{
 		PendingBits++;
-		if (lo < OneFourth) writeBit(0);
+		if (lo < ONE_FOURTH) writeBit(0);
 		else writeBit(1);
 
 		if (BitBuff) Bytes.push_back(BitBuff);
@@ -27,7 +27,7 @@ public:
 	void flush()
 	{
 		PendingBits++;
-		if (lo < OneFourth) writeBit(0);
+		if (lo < ONE_FOURTH) writeBit(0);
 		else writeBit(1);
 
 		if (BitBuff) Bytes.push_back(BitBuff);
@@ -35,7 +35,7 @@ public:
 
 	void encode(prob Prob)
 	{
-		Assert(Prob.scale <= ProbMaxValue);
+		Assert(Prob.scale <= PROB_MAX_VALUE);
 
 		u32 step = ((hi - lo) + 1) / Prob.scale;
 		hi = lo + (Prob.hi * step) - 1;
@@ -43,27 +43,27 @@ public:
 
 		for (;;)
 		{
-			if (hi < OneHalf)
+			if (hi < ONE_HALF)
 			{
 				writeBit(0);
 			}
-			else if (lo >= OneHalf)
+			else if (lo >= ONE_HALF)
 			{
 				writeBit(1);
 			}
-			else if ((lo >= OneFourth) && (hi < ThreeFourths))
+			else if ((lo >= ONE_FOURTH) && (hi < THREE_FOURTHS))
 			{
 				++PendingBits;
-				lo -= OneFourth;
-				hi -= OneFourth;
+				lo -= ONE_FOURTH;
+				hi -= ONE_FOURTH;
 			}
 			else break;
 
 			hi <<= 1;
 			hi++;
 			lo <<= 1;
-			hi &= CodeMaxValue;
-			lo &= CodeMaxValue;
+			hi &= CODE_MAX_VALUE;
+			lo &= CODE_MAX_VALUE;
 		}
 	}
 
@@ -110,7 +110,7 @@ public:
 
 	ArithDecoder() = delete;
 	ArithDecoder(ByteVec& InputBuffer) :
-		BytesIn(InputBuffer), lo(0), hi(CodeMaxValue), code(0), ReadBytesPos(0), ReadBitPos(8)
+		BytesIn(InputBuffer), lo(0), hi(CODE_MAX_VALUE), code(0), ReadBytesPos(0), ReadBitPos(8)
 	{
 		InSize = InputBuffer.size();
 
@@ -137,33 +137,33 @@ public:
 
 		for (;;)
 		{
-			if (hi < OneHalf)
+			if (hi < ONE_HALF)
 			{
 			}
-			else if (lo >= OneHalf)
+			else if (lo >= ONE_HALF)
 			{
-				code -= OneHalf;
-				hi -= OneHalf;
-				lo -= OneHalf;
 			}
-			else if ((lo >= OneFourth) && (hi < ThreeFourths))
+			else if ((lo >= ONE_FOURTH) && (hi < THREE_FOURTHS))
 			{
-				code -= OneFourth;
-				hi -= OneFourth;
-				lo -= OneFourth;
+				code -= ONE_FOURTH;
+				hi -= ONE_FOURTH;
+				lo -= ONE_FOURTH;
 			}
 			else break;
 
 			hi <<= 1;
 			hi++;
 			lo <<= 1;
+			hi &= CODE_MAX_VALUE;
+			lo &= CODE_MAX_VALUE;
 
-			shiftBitToCode();
+			code = shiftBitToCode();
+			code &= CODE_MAX_VALUE;
 		}
 	}
 
 private:
-	inline void shiftBitToCode()
+	inline u32 shiftBitToCode()
 	{
 		u32 Result = code << 1;
 
@@ -181,7 +181,7 @@ private:
 			}
 		}
 
-		code = Result;
+		return Result;
 	}
 
 	inline u8 getByte()

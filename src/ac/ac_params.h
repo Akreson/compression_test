@@ -1,15 +1,15 @@
 #if !defined(AC_PARAMS_H)
 #define AC_PARAMS_H
 
-static constexpr u32 CodeBit = 24;
-static constexpr u32 FreqBit = 15;
-static constexpr u32 FreqMaxBit = 14;
-static constexpr u32 CodeMaxValue = (1 << CodeBit) - 1;
-static constexpr u32 ProbMaxValue = (1 << FreqBit) - 1;
-static constexpr u32 FreqMaxValue = (1 << FreqMaxBit);
-static constexpr u32 OneFourth = (1 << (CodeBit - 2));
-static constexpr u32 OneHalf = OneFourth * 2;
-static constexpr u32 ThreeFourths = OneFourth * 3;
+static constexpr u32 CODE_BITS = 24;
+static constexpr u32 FREQ_BITS = 15;
+static constexpr u32 FREQ_MAX_BITS = 14;
+static constexpr u32 CODE_MAX_VALUE = (1 << CODE_BITS) - 1;
+static constexpr u32 PROB_MAX_VALUE = (1 << FREQ_BITS) - 1;
+static constexpr u32 FREQ_MAX_VALUE = (1 << FREQ_MAX_BITS);
+static constexpr u32 ONE_FOURTH = (1 << (CODE_BITS - 2));
+static constexpr u32 THREE_FOURTHS = ONE_FOURTH * 3;
+static constexpr u32 ONE_HALF = ONE_FOURTH * 2;
 
 struct prob
 {

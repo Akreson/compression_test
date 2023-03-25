@@ -37,25 +37,10 @@ struct decode_symbol_result
 	u32 Symbol;
 };
 
-struct symbol_search_result
-{
-	b32 Success;
-	u16 Index;
-};
-
-struct find_context_result
-{
-	context* Context;
-	u16 SeqIndex;
-	u16 ChainMissIndex;
-	b16 IsNotComplete;
-	b16 SymbolMiss;
-};
-
 static const u8 ExpEscape[16] = {25, 14, 9, 7, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2};
 
-static constexpr u32 FreqBits = 7;
-static constexpr u32 Interval = 1 << FreqBits;
-static constexpr u32 MaxFreq = 124;
+static constexpr u32 CTX_MAX_BITS = 7;
+static constexpr u32 INTERVAL = 1 << CTX_MAX_BITS;
+static constexpr u32 MAX_FREQ = 124;
 
 #endif

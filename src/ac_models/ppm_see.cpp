@@ -76,7 +76,7 @@ public:
 
 	inline void updateLastUsed(void)
 	{
-		if ((LastUsed->Shift < FreqBits) && (--LastUsed->Count == 0)) {
+		if ((LastUsed->Shift < CTX_MAX_BITS) && (--LastUsed->Count == 0)) {
 			LastUsed->Summ += LastUsed->Summ;
 			LastUsed->Count = 2 << ++LastUsed->Shift;
 		}
@@ -109,7 +109,7 @@ public:
 	{
 		see_context Result = {};
 
-		Result.Shift = FreqBits - 3;
+		Result.Shift = CTX_MAX_BITS - 3;
 		Result.Summ = Init << Result.Shift;
 		Result.Count = 16;
 
@@ -128,7 +128,7 @@ public:
 		{
 			for (u32 j = 0; j < 16; j++)
 			{
-				BinContext[i][j].Scale = FreqMaxValue - (InitBinEsc[j] / (i + 2));
+				BinContext[i][j].Scale = FREQ_MAX_VALUE - (InitBinEsc[j] / (i + 2));
 			}
 		}
 

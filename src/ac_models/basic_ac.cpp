@@ -31,7 +31,7 @@ public:
 			CumFreq[i] += 1;
 		}
 
-		if (CumFreq[FreqArraySize - 1] >= FreqMaxValue)
+		if (CumFreq[FreqArraySize - 1] >= FREQ_MAX_VALUE)
 		{
 			CumFreq[0] = (CumFreq[0] + 1) / 2;
 			for (u32 i = 1; i < FreqArraySize; ++i)

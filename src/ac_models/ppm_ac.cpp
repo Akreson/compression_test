@@ -93,7 +93,7 @@ public:
 
 		if (MinContext->SymbolCount == 1)
 		{
-			u32 DecFreq = Decoder.getCurrFreq(FreqMaxValue);
+			u32 DecFreq = Decoder.getCurrFreq(FREQ_MAX_VALUE);
 			DecSym = getSymbolFromFreqBin(DecFreq);
 		}
 		else
@@ -284,25 +284,24 @@ private:
 		{
 			context_data* Data = MinContext->Data + SymbolIndex;
 			u32 ModFreq = Data->Freq & Exclusion->Data[Data->Symbol];
-			u32 CheckFreq = CumFreq + ModFreq;
+			CumFreq += ModFreq;
 
-			if (CheckFreq > DecodeFreq) break;
-			CumFreq = CheckFreq;
+			if (CumFreq > DecodeFreq) break;
 		}
 
-		Result.Prob.lo = CumFreq;
 		if (SymbolIndex < MinContext->SymbolCount)
 		{
 			context_data* MatchSymbol = MinContext->Data + SymbolIndex;
 			LastEncSym = MatchSymbol;
 
-			Result.Prob.hi = CumFreq + MatchSymbol->Freq;
+			Result.Prob.hi = CumFreq;
+			Result.Prob.lo = CumFreq - MatchSymbol->Freq;
 			Result.Symbol = MatchSymbol->Symbol;
 
 			MatchSymbol->Freq += 4;
 			MinContext->TotalFreq += 4;
 
-			if (MatchSymbol->Freq > MaxFreq)
+			if (MatchSymbol->Freq > MAX_FREQ)
 			{
 				rescale(MinContext);
 			}
@@ -311,6 +310,7 @@ private:
 		{
 			SEE->LastUsed->Summ += Result.Prob.scale;
 			Result.Prob.hi = Result.Prob.scale;
+			Result.Prob.lo = CumFreq;
 			Result.Symbol = EscapeSymbol;
 			LastMaskedCount = MinContext->SymbolCount;
 			updateExclusionData(MinContext);
@@ -337,7 +337,7 @@ private:
 			MinContext->TotalFreq += 4;
 			First->Freq += 4;
 
-			if (First->Freq > MaxFreq)
+			if (First->Freq > MAX_FREQ)
 			{
 				rescale(MinContext);
 			}
@@ -375,7 +375,7 @@ private:
 				}
 				LastEncSym = MatchSymbol;
 
-				if (MatchSymbol->Freq > MaxFreq)
+				if (MatchSymbol->Freq > MAX_FREQ)
 				{
 					rescale(MinContext);
 				}
@@ -396,7 +396,7 @@ private:
 	decode_symbol_result getSymbolFromFreqBin(u32 DecodeFreq)
 	{
 		decode_symbol_result Result = {};
-		Result.Prob.scale = FreqMaxValue;
+		Result.Prob.scale = FREQ_MAX_VALUE;
 		see_bin_context* BinCtx = SEE->getBinContext(MinContext);
 
 		context_data* First = MinContext->Data;
@@ -405,7 +405,7 @@ private:
 			LastEncSym = First;
 			Result.Prob.hi = BinCtx->Scale;
 			First->Freq += (First->Freq < 128) ? 1 : 0;
-			BinCtx->Scale += Interval - SEE->getBinMean(BinCtx->Scale);
+			BinCtx->Scale += INTERVAL - SEE->getBinMean(BinCtx->Scale);
 			SEE->PrevSuccess = 1;
 			Result.Symbol = First->Symbol;
 		}
@@ -413,7 +413,7 @@ private:
 		{
 			SEE->PrevSuccess = 0;
 			Result.Prob.lo = BinCtx->Scale;
-			Result.Prob.hi = FreqMaxValue;
+			Result.Prob.hi = FREQ_MAX_VALUE;
 			Result.Symbol = EscapeSymbol;
 
 			BinCtx->Scale -= SEE->getBinMean(BinCtx->Scale);
@@ -464,7 +464,7 @@ private:
 			MatchSymbol->Freq += 4;
 			MinContext->TotalFreq += 4;
 
-			if (MatchSymbol->Freq > MaxFreq)
+			if (MatchSymbol->Freq > MAX_FREQ)
 			{
 				rescale(MinContext);
 			}
@@ -499,7 +499,7 @@ private:
 			MinContext->TotalFreq += 4;
 			First->Freq += 4;
 
-			if (First->Freq > MaxFreq)
+			if (First->Freq > MAX_FREQ)
 			{
 				rescale(MinContext);
 			}
@@ -536,7 +536,7 @@ private:
 				}
 				LastEncSym = MatchSymbol;
 
-				if (MatchSymbol->Freq > MaxFreq)
+				if (MatchSymbol->Freq > MAX_FREQ)
 				{
 					rescale(MinContext);
 				}
@@ -557,7 +557,7 @@ private:
 	b32 getEncodeProbBin(prob& Prob, u32 Symbol)
 	{
 		b32 Success = false;
-		Prob.scale = FreqMaxValue;
+		Prob.scale = FREQ_MAX_VALUE;
 		see_bin_context* BinCtx = SEE->getBinContext(MinContext);
 
 		context_data* First = MinContext->Data;
@@ -567,7 +567,7 @@ private:
 			Prob.lo = 0;
 			Prob.hi = BinCtx->Scale;
 			First->Freq += (First->Freq < 128) ? 1 : 0;
-			BinCtx->Scale += Interval - SEE->getBinMean(BinCtx->Scale);
+			BinCtx->Scale += INTERVAL - SEE->getBinMean(BinCtx->Scale);
 			SEE->PrevSuccess = 1;
 			Success = true;
 		}
@@ -575,7 +575,7 @@ private:
 		{
 			SEE->PrevSuccess = 0;
 			Prob.lo = BinCtx->Scale;
-			Prob.hi = FreqMaxValue;
+			Prob.hi = FREQ_MAX_VALUE;
 			BinCtx->Scale -= SEE->getBinMean(BinCtx->Scale);
 			InitEsc = ExpEscape[BinCtx->Scale >> 10];
 			LastMaskedCount = 1;
@@ -698,8 +698,8 @@ private:
 			if (OldCount == 1)
 			{
 				context_data* First = ContextAt->Data;
-				if (First->Freq < ((MaxFreq / 4) - 1)) First->Freq += First->Freq;
-				else First->Freq = MaxFreq - 4;
+				if (First->Freq < ((MAX_FREQ / 4) - 1)) First->Freq += First->Freq;
+				else First->Freq = MAX_FREQ - 4;
 
 				ContextAt->TotalFreq = InitEsc + First->Freq + (MinContext->SymbolCount > 3);
 			}
