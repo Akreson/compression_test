@@ -18,7 +18,7 @@ class PPMByte
 	u16 LastMaskedCount;
 
 public:
-	StaticSubAlloc SubAlloc;
+	StaticSubAlloc<32> SubAlloc;
 	static constexpr u32 EscapeSymbol = context::MaxSymbol + 1;
 
 #ifdef _DEBUG
@@ -28,7 +28,7 @@ public:
 
 	PPMByte() = delete;
 	PPMByte(u32 MaxOrderContext, u32 MemLimit) :
-		SubAlloc(MemLimit, 32), SEE(nullptr), OrderCount(MaxOrderContext)
+		SubAlloc(MemLimit), SEE(nullptr), OrderCount(MaxOrderContext)
 	{
 		initModel();
 		SEE = new SEEState;

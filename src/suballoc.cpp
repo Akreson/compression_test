@@ -25,8 +25,10 @@ struct free_mem_block
 	free_mem_block* Prev;
 };
 
+template<u32 ReqMinAlloc>
 class StaticSubAlloc
 {
+	static constexpr u32 MinAlloc = AlignSizeForward(ReqMinAlloc, 2);
 	static constexpr u32 MemBlockSize = AlignSizeForward(sizeof(mem_block));
 	static constexpr u32 FreeMemBlockSize = AlignSizeForward(sizeof(free_mem_block));
 	static constexpr u32 MaxBlockFreeSize = std::numeric_limits<u32>::max() >> 2;
@@ -39,7 +41,7 @@ class StaticSubAlloc
 	} EndOf;
 	free_mem_block FreeSentinel;
 	u64 TotalSize;
-	u32 MinAlloc;
+	//u32 MinAlloc;
 	u32 MinUse;
 
 public:
@@ -49,9 +51,9 @@ public:
 #endif
 
 	StaticSubAlloc() {};
-	StaticSubAlloc(u64 SizeToReserve, u32 MinAllocSize = 1) : Memory(nullptr)
+	StaticSubAlloc(u64 SizeToReserve) : Memory(nullptr)
 	{
-		init(SizeToReserve, MinAllocSize);
+		init(SizeToReserve);
 	}
 
 	~StaticSubAlloc()
@@ -60,9 +62,9 @@ public:
 		Memory = nullptr;
 	}
 
-	void init(u64 SizeToReserve, u32 MinAllocSize)
+	void init(u64 SizeToReserve)
 	{
-		MinAlloc = AlignSizeForward(MinAllocSize, 2);
+		//MinAlloc = AlignSizeForward(MinAlloc, 2);
 		MinUse = AlignSizeForward(MinAlloc + MemBlockSize);
 
 		if (MinUse < FreeMemBlockSize)
