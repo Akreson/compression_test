@@ -1,24 +1,5 @@
 #include <algorithm>
 
-inline void
-CountByte(u32* Freq, u8* Input, u64 Size)
-{
-	for (u64 i = 0; i < Size; i++)
-	{
-		Freq[Input[i]]++;
-	}
-}
-
-template<typename T> inline void
-CalcCumFreq(T* Freq, T* CumFreq, u32 SymCount)
-{
-	CumFreq[0] = 0;
-	for (u32 i = 0; i < SymCount; i++)
-	{
-		CumFreq[i + 1] = CumFreq[i] + Freq[i];
-	}
-}
-
 // Fabian rANS tutorial example https://github.com/rygorous/ryg_rans
 void
 Normalize(u32* Freq, u32* CumFreq, u16* NormFreq, u16* NormCumFreq, u32 SymCount, u32 TargetTotal)

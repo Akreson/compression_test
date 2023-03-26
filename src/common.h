@@ -343,4 +343,44 @@ PrintCompressionSize(u64 InitSize, u64 CompSize)
 	printf("%lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
 }
 
+template<typename T> inline void
+CountByte(T* Freq, u8* Input, u64 Size)
+{
+	for (u64 i = 0; i < Size; i++)
+	{
+		Freq[Input[i]]++;
+	}
+}
+
+template<typename T> inline void
+CalcCumFreq(T* Freq, T* CumFreq, u32 SymCount)
+{
+	CumFreq[0] = 0;
+	for (u32 i = 0; i < SymCount; i++)
+	{
+		CumFreq[i + 1] = CumFreq[i] + Freq[i];
+	}
+}
+
+template<typename T> f64
+Entropy(const T * Freq, u32 AlphSize)
+{
+	f64 H = 0;
+	u64 Sum = 0;
+
+	for (u32 i = 0; i < AlphSize; i++)
+	{
+		T count = Freq[i];
+		if (count)
+		{
+			Sum += count;
+			H -= count * std::log2(static_cast<f64>(count));
+		}
+	}
+
+	f64 SumFP = static_cast<f64>(Sum);
+	H = std::log2(SumFP) + H / SumFP;
+	return H;
+}
+
 #endif
