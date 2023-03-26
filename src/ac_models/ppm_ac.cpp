@@ -260,7 +260,7 @@ private:
 					EscFreq >>= 1;
 				} while (EscFreq > 1);
 				
-				// TODO: free unused 0 freq symbol memory
+				SubAlloc.shrink(Context->Data, 1);
 				return;
 			}
 		}

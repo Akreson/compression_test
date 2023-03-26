@@ -165,19 +165,10 @@ public:
 				u32 LeftSize = FreeBlock->Mem.Size - AllocSize;
 				if (LeftSize >= MinUse)
 				{
-					free_mem_block* NewFreeBlock = getNextBlockPtr<free_mem_block*>(FreeBlock, AllocSize);
-
-					NewFreeBlock->Mem.Size = LeftSize - MemBlockSize;
-					NewFreeBlock->Mem.PrevSize = AllocSize;
-					NewFreeBlock->Mem.IsFree = true;
-
-					FreeBlock->Mem.Size = AllocSize;
-
-					patchNextPrevSize(NewFreeBlock, NewFreeBlock->Mem.Size);
+					free_mem_block* NewFreeBlock = splitBlock(reinterpret_cast<mem_block*>(FreeBlock), AllocSize, LeftSize);
 					
 					Assert(NewFreeBlock->Mem.PrevSize == FreeBlock->Mem.Size);
 					insertBlockNext(&FreeSentinel, NewFreeBlock);
-
 #if DEBUG_SUB_ALLOC
 					FreeListCount++;
 					FreeMem -= MemBlockSize + AllocSize;
@@ -275,6 +266,29 @@ public:
 	}
 
 	template<typename T>
+	inline void shrink(T* Ptr, u32 NewCount, u32 FreeThreshInMinAlloc = 1)
+	{
+		shrink(reinterpret_cast<u8*>(Ptr), sizeof(T) * NewCount, FreeThreshInMinAlloc);
+	}
+
+	void shrink(u8* Ptr, u32 NewSize, u32 FreeThreshInMinAlloc = 1)
+	{
+		Assert(Ptr);
+		mem_block* Block = reinterpret_cast<mem_block*>(Ptr - MemBlockSize);
+
+		u32 NewSizeAlign = alignSizeWithMinAllocForward(NewSize);
+		u32 FreeSize = Block->Size - NewSizeAlign;
+		u32 DeallocSize = MemBlockSize + (FreeThreshInMinAlloc * MinAlloc);
+
+		if (FreeSize >= DeallocSize)
+		{
+			free_mem_block* NewFreeBlock = splitBlock(Block, NewSizeAlign, FreeSize);
+			u8* PtrToDealloc = reinterpret_cast<u8*>(NewFreeBlock) + MemBlockSize;
+			dealloc(PtrToDealloc);
+		}
+	}
+
+	template<typename T>
 	inline T* realloc(T* Ptr, u32 NewCount, u32 PreallocCount = 0)
 	{
 		return reinterpret_cast<T*>(realloc(reinterpret_cast<u8*>(Ptr), sizeof(T) * NewCount, sizeof(T) * PreallocCount));
@@ -318,12 +332,26 @@ private:
 		return Result;
 	}
 
+	inline free_mem_block* splitBlock(mem_block* SplitBlock, u32 SplitLeftSize, u32 NewTotalSize)
+	{
+		free_mem_block* NewFreeBlock = getNextBlockPtr<free_mem_block*>(SplitBlock, SplitLeftSize);
+
+		NewFreeBlock->Mem.Size = NewTotalSize - MemBlockSize;
+		NewFreeBlock->Mem.PrevSize = SplitLeftSize;
+		NewFreeBlock->Mem.IsFree = true;
+
+		SplitBlock->Size = SplitLeftSize;
+		patchNextPrevSize(NewFreeBlock, NewFreeBlock->Mem.Size);
+
+		return NewFreeBlock;
+	}
+
 	template<typename T>
-	inline void patchNextPrevSize(T* NextAfter, u32 NewPrevSize)
+	inline void patchNextPrevSize(T* NewAfter, u32 NewPrevSize)
 	{
 		Assert(NewPrevSize <= MaxBlockFreeSize);
 
-		mem_block* MemBlock = reinterpret_cast<mem_block*>(NextAfter);
+		mem_block* MemBlock = reinterpret_cast<mem_block*>(NewAfter);
 		mem_block* CurrNext = getNextBlockPtr(MemBlock, MemBlock->Size);
 
 		if (EndOf.MemBlock != CurrNext)
