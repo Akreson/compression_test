@@ -25,7 +25,7 @@ public:
 	~SEEState() {}
 	SEEState()
 	{
-		LastUsed = nullptr;
+		LastUsed = &Context[43][0];
 		PrevSuccess = 0;
 
 		u32 i;
