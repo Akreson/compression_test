@@ -23,7 +23,6 @@ struct context
 	context_data* Data;
 	context* Prev;
 	u16 TotalFreq;
-	u16 EscapeFreq;
 	u16 SymbolCount;
 
 	static constexpr u32 MaxSymbol = 255;
@@ -35,6 +34,10 @@ struct decode_symbol_result
 	u32 Symbol;
 };
 
+static const u8 ExpEscape[16] = {25, 14, 9, 7, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2};
+
+static constexpr u32 CTX_FREQ_BITS = 7;
+static constexpr u32 INTERVAL = 1 << CTX_FREQ_BITS;
 static constexpr u32 MAX_FREQ = 124;
 
 #endif

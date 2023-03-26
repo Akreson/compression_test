@@ -89,7 +89,6 @@ struct AccumTime
 	}
 };
 
-
 inline void
 PrintSymbolEncPerfStats(u64 Clocks, f64 Time, size_t DataSize)
 {
@@ -116,6 +115,14 @@ inline void
 PrintCompressionSize(size_t InitSize, size_t CompSize)
 {
 	printf(" %lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
+}
+
+inline u8
+SafeTruncateU32(u32 Value)
+{
+	Assert(Value <= MaxUInt8);
+	u8 Result = (u8)Value;
+	return(Result);
 }
 
 inline constexpr size_t
