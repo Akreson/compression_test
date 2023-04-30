@@ -89,10 +89,11 @@ RansEncSymInit(rans_enc_sym32* Sym, u32 CumStart, u32 Freq, u32 ScaleBit, u32 L,
 	{
 		// NOTE: edge case, with _while_ this will be handled when (Freq == 1 << Shift) 
 		u32 Adder = static_cast<u32>(!IsPowerOf2(Freq));
-		bit_scan_result Result = FindMostSignificantSetBit(Freq);
-		Assert(Result.Succes);
 
-		u32 Shift = Result.Index + Adder;
+		Assert(Freq);
+		u32 ScanResult = FindMostSignificantSetBit(Freq);
+		u32 Shift = ScanResult + Adder;
+
 		Sym->RcpFreq = (u32)(((1ull << (Shift + 31)) + Freq - 1) / Freq);
 		Sym->RcpShift = Shift - 1;
 		Sym->Bias = CumStart;
@@ -128,10 +129,10 @@ RansEncSymInit(rans_enc_sym64* Sym, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
 		// NOTE: edge case, with _while_ this will be handled when (Freq == 1 << Shift) 
 		u32 Adder = static_cast<u32>(!IsPowerOf2(Freq));
-		bit_scan_result Result = FindMostSignificantSetBit(Freq);
-		Assert(Result.Succes);
-
-		u32 Shift = Result.Index + Adder;
+		
+		Assert(Freq);
+		u32 ScanResult = FindMostSignificantSetBit(Freq);
+		u32 Shift = ScanResult + Adder;
 
 		u64 x0 = Freq - 1;
 		u64 x1 = 1ull << (Shift + 31);

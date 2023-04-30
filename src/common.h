@@ -94,12 +94,6 @@ struct AccumTime
 	}
 };
 
-struct bit_scan_result
-{
-	u16 Index;
-	u16 Succes;
-};
-
 #if _MSC_VER
 
 #define ALIGN(type, name, N) __declspec(align(N)) type name
@@ -111,12 +105,11 @@ MulHi64(u64 a, u64 b)
 	return __umulh(a, b);
 }
 
-inline bit_scan_result
+inline u32
 FindMostSignificantSetBit(u32 Source)
 {
-	bit_scan_result Result;
-	Result.Succes = _BitScanReverse((unsigned long*)&Result.Index, Source);
-
+	u32 Result;
+	u32 S = _BitScanReverse((unsigned long*)&Result, Source);
 	return Result;
 }
 
@@ -131,13 +124,10 @@ MulHi64(u64 a, u64 b)
     return (u64)(((unsigned __int128)a * b) >> 64);
 }
 
-inline bit_scan_result
+inline u32
 FindMostSignificantSetBit(u32 Source)
 {
-	bit_scan_result Result;
-	Result.Succes = Source;
-	Result.Index = __builtin_clz(Source);
-
+	u32 Result = 31 - __builtin_clz(Source);
 	return Result;
 }
 
