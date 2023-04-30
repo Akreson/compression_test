@@ -75,8 +75,6 @@ TestBasicRans8(file_data& InputFile)
 
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
-		Accum.Clock += EncClocks;
-		Accum.Time += EncTime;
 		Accum.update(EncClocks, EncTime);
 		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
 	}

@@ -69,7 +69,7 @@ struct AccumTime
 		reset();
 	};
 
-	void update(u64 StepClock, f64 StepTime)
+	inline void update(u64 StepClock, f64 StepTime)
 	{
 		Clock += StepClock;
 		Time += StepTime;
@@ -81,7 +81,7 @@ struct AccumTime
 		MaxTime = MaxTime > StepTime ? MaxTime : StepTime;
 	}
 
-	void reset()
+	inline void reset()
 	{
 		Clock = 0;
 		Time = 0.0;
