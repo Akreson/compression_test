@@ -315,7 +315,7 @@ public:
 			Result = alloc(PreallocSize);
 			if (Result)
 			{
-				Copy(Block->Size, Result, Ptr);
+				MemCopy(Block->Size, Result, Ptr);
 				dealloc(Ptr);
 			}
 		}

@@ -1068,7 +1068,7 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 	std::vector<rans_sym> BuffRans;
 	for (;;)
 	{
-		Copy(CDFSize, CDF, InitCDF);
+		MemCopy(CDFSize, CDF, InitCDF);
 
 		for (u64 i = Start; i < End; i++)
 		{
@@ -1124,7 +1124,7 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	//decoding
-	Copy(CDFSize, CDF, InitCDF);
+	MemCopy(CDFSize, CDF, InitCDF);
 
 	u32* In = DecodeBegin;
 	Rans32Dec Decoder;

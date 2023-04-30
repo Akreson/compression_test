@@ -215,7 +215,7 @@ ZeroSize(void* Ptr, u64 Size)
 #define ZeroStruct(Instance) ZeroSize((void *)&(Instance), sizeof(Instance))
 
 inline void
-Copy(size_t Size, void* DestBase, void* SourceBase)
+MemCopy(size_t Size, void* DestBase, void* SourceBase)
 {
 	u8* Source = (u8*)SourceBase;
 	u8* Dest = (u8*)DestBase;
