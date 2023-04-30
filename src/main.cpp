@@ -4,6 +4,7 @@
 #include "common.h"
 #include "suballoc.cpp"
 
+#include "renorm.cpp"
 #include "ac_tests.cpp"
 #include "ans_tests.cpp"
 
@@ -19,10 +20,9 @@ main(int argc, char** argv)
 	std::vector<file_data> InputArr;
 	ReadTestFiles(InputArr, argv[1]);
 
-	size_t ByteCount[256] = {};
-
 	for (auto& InputFile : InputArr)
 	{
+		size_t ByteCount[256] = {};
 		CountByte(ByteCount, InputFile.Data, InputFile.Size);
 		f64 FileByteH = Entropy(ByteCount, 256);
 		printf("---------- %s %lu H:%.3f\n", InputFile.Name.c_str(), InputFile.Size, FileByteH);

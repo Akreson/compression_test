@@ -2,7 +2,6 @@
 #include "ans/rans8.cpp"
 #include "ans/rans16.cpp"
 #include "ans/rans32.cpp"
-#include "ans/renorm.cpp"
 #include "ans/static_basic_stats.cpp"
 
 inline void
