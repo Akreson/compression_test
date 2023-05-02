@@ -6,6 +6,7 @@
 #include "suballoc.cpp"
 
 #include "renorm.cpp"
+#include "huff_tests.cpp"
 #include "ac_tests.cpp"
 #include "ans_tests.cpp"
 
@@ -28,8 +29,10 @@ main(int argc, char** argv)
 		f64 FileByteH = Entropy(ByteCount, 256);
 		printf("---------- %s %lu H:%.3f\n", InputFile.Name.c_str(), InputFile.Size, FileByteH);
 
+		TestHuff1(InputFile);
+
 		//TestACBasicModel(InputFile);
-		TestPPMModel(InputFile);
+		//TestPPMModel(InputFile);
 	
 		//TestBasicRans8(InputFile);
 		//TestBasicRans32(InputFile);

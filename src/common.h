@@ -324,6 +324,18 @@ PrintAvgPerSymbolPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
 	printf("\n");
 }
 
+std::string ToBinary(u64 Val, u32 Len)
+{
+	std::string Result;
+
+	for (s32 i = Len - 1; i >= 0; i--)
+	{
+		Result += ((Val >> i) & 1) ? "1" : "0";
+	}
+
+	return Result;
+}
+
 template<typename T> inline void
 CountByte(T* Freq, u8* Input, u64 Size)
 {
