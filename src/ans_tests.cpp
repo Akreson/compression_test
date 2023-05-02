@@ -4,28 +4,6 @@
 #include "ans/rans32.cpp"
 #include "ans/static_basic_stats.cpp"
 
-inline void
-PrintRansPerfStats(u64 Clocks, f64 Time, u64 DataSize)
-{
-	printf(" %lu clocks, %.1f clocks/symbol (%5.1f MiB/s)\n", Clocks, 1.0 * Clocks / DataSize, 1.0 * DataSize / (Time * 1048576.0));
-}
-
-inline void
-PrintAvgRansPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
-{
-	Accum.Clock /= RunsCount;
-	Accum.Time /= (f64)RunsCount;
-	printf(" avg of %d runs ", RunsCount);
-	PrintRansPerfStats(Accum.Clock, Accum.Time, DataSize);
-#if 1
-	printf(" min of %d runs ", RunsCount);
-	PrintRansPerfStats(Accum.MinClock, Accum.MinTime, DataSize);
-	printf(" max of %d runs ", RunsCount);
-	PrintRansPerfStats(Accum.MaxClock, Accum.MaxTime, DataSize);
-#endif
-	printf("\n");
-}
-
 void
 TestBasicRans8(file_data& InputFile)
 {
@@ -76,10 +54,10 @@ TestBasicRans8(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
@@ -109,10 +87,10 @@ TestBasicRans8(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -168,10 +146,10 @@ TestBasicRans32(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
@@ -200,10 +178,10 @@ TestBasicRans32(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -238,7 +216,8 @@ TestFastEncodeRans8(file_data& InputFile)
 	rans_enc_sym32 EncSymArr[256];
 	rans_dec_sym32 DecSymArr[256];
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++)
+	{
 		RansEncSymInit(&EncSymArr[i], Stats.CumFreq[i], Stats.Freq[i], ProbBit, Rans8L, 8);
 		RansDecSymInit(&DecSymArr[i], Stats.CumFreq[i], Stats.Freq[i]);
 	}
@@ -267,10 +246,10 @@ TestFastEncodeRans8(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
@@ -300,10 +279,10 @@ TestFastEncodeRans8(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -338,7 +317,8 @@ TestFastEncodeRans32(file_data& InputFile)
 	rans_enc_sym64 EncSymArr[256];
 	rans_dec_sym64 DecSymArr[256];
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++)
+	{
 		RansEncSymInit(&EncSymArr[i], Stats.CumFreq[i], Stats.Freq[i], ProbBit);
 		RansDecSymInit(&DecSymArr[i], Stats.CumFreq[i], Stats.Freq[i]);
 	}
@@ -367,10 +347,10 @@ TestFastEncodeRans32(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
@@ -401,10 +381,10 @@ TestFastEncodeRans32(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -458,10 +438,10 @@ TestTableDecodeRans16(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
@@ -493,10 +473,10 @@ TestTableDecodeRans16(file_data& InputFile)
 		Accum.Clock += DecClocks;
 		Accum.Time += DecTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -561,10 +541,10 @@ TestTableInterleavedRans16(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
@@ -606,10 +586,10 @@ TestTableInterleavedRans16(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -674,10 +654,10 @@ TestTableInterleavedRans32(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
@@ -719,10 +699,10 @@ TestTableInterleavedRans32(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;
@@ -781,10 +761,10 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		u64 EncClocks = __rdtsc() - EncStartClock;
 		f64 EncTime = timer() - EncStartTime;
 		Accum.update(EncClocks, EncTime);
-		//PrintRansPerfStats(EncClocks, EncTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 	Accum.reset();
 
 	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
@@ -827,10 +807,10 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		u64 DecClocks = __rdtsc() - DecStartClock;
 		f64 DecTime = timer() - DecStartTime;
 		Accum.update(DecClocks, DecTime);
-		//PrintRansPerfStats(DecClocks, DecTime, InputFile.Size);
+		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
-	PrintAvgRansPerfStats(Accum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(Accum, RunsCount, InputFile.Size);
 
 	delete[] OutBuff;
 	delete[] DecBuff;

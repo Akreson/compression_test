@@ -333,6 +333,28 @@ PrintCompressionSize(u64 InitSize, u64 CompSize)
 	printf("%lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
 }
 
+inline void
+PrintSymbolEncPerfStats(u64 Clocks, f64 Time, u64 DataSize)
+{
+	printf("  %lu clocks, %.1f clocks/symbol (%5.1f MiB/s)\n", Clocks, 1.0 * Clocks / DataSize, 1.0 * DataSize / (Time * 1048576.0));
+}
+
+inline void
+PrintAvgPerSymbolPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
+{
+	Accum.Clock /= RunsCount;
+	Accum.Time /= (f64)RunsCount;
+	printf(" avg of %d runs ", RunsCount);
+	PrintSymbolEncPerfStats(Accum.Clock, Accum.Time, DataSize);
+#if 1
+	printf(" min of %d runs ", RunsCount);
+	PrintSymbolEncPerfStats(Accum.MinClock, Accum.MinTime, DataSize);
+	printf(" max of %d runs ", RunsCount);
+	PrintSymbolEncPerfStats(Accum.MaxClock, Accum.MaxTime, DataSize);
+#endif
+	printf("\n");
+}
+
 template<typename T> inline void
 CountByte(T* Freq, u8* Input, u64 Size)
 {
