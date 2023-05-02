@@ -25,8 +25,6 @@ typedef u32 b32;
 typedef u16 b16;
 typedef u8 b8;
 
-using ByteVec = std::vector<u8>;
-
 static constexpr u32 PtrAlign = sizeof(void*);
 static constexpr u32 MaxUInt8 = std::numeric_limits<u8>::max();
 static constexpr u32 MaxUInt16 = std::numeric_limits<u16>::max();
@@ -185,35 +183,6 @@ AlignSizeForward(u64 Size, u32 Alignment = PtrAlign)
 
 	Result += AlignOffset;
 	return Result;
-}
-
-template<typename T> inline void
-MemSet(T* Dest, u64 Size, T Value)
-{
-	while (Size--)
-	{
-		*Dest++ = Value;
-	}
-}
-
-inline void
-ZeroSize(void* Ptr, u64 Size)
-{
-	MemSet<u8>(static_cast<u8*>(Ptr), Size, 0);
-}
-
-#define ZeroStruct(Instance) ZeroSize((void *)&(Instance), sizeof(Instance))
-
-inline void
-MemCopy(size_t Size, void* DestBase, void* SourceBase)
-{
-	u8* Source = (u8*)SourceBase;
-	u8* Dest = (u8*)DestBase;
-
-	while (Size--)
-	{
-		*Dest++ = *Source++;
-	}
 }
 
 struct file_data

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include "common.h"
+#include "mem.cpp"
 #include "suballoc.cpp"
 
 #include "renorm.cpp"
