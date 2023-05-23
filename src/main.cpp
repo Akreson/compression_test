@@ -29,18 +29,18 @@ main(int argc, char** argv)
 		f64 FileByteH = Entropy(ByteCount, 256);
 		printf("---------- %s %lu H:%.3f\n", InputFile.Name.c_str(), InputFile.Size, FileByteH);
 
-		TestHuff1(InputFile);
+		TestHuffDefault1(InputFile);
 
 		//TestACBasicModel(InputFile);
 		//TestPPMModel(InputFile);
 	
-		TestBasicRans8(InputFile);
+		//TestBasicRans8(InputFile);
 		//TestBasicRans32(InputFile);
-		TestFastEncodeRans8(InputFile);
+		//TestFastEncodeRans8(InputFile);
 		//TestFastEncodeRans32(InputFile);
 		//TestTableDecodeRans16(InputFile);
 		//TestTableInterleavedRans16(InputFile);
-		TestTableInterleavedRans32(InputFile);
+		//TestTableInterleavedRans32(InputFile);
 		//TestSIMDDecodeRans16(InputFile);
 		//TestNormalizationRans32(InputFile);
 		//TestPrecomputeAdaptiveOrder1Rans32(InputFile);

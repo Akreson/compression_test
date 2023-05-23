@@ -144,8 +144,7 @@ struct HuffDefaultBuild
 
 		if (Success)
 		{
-			huff_node* TakeCodesFrom = (MaxCodeLen == 0) ? BuildNodes : InitNodes;
-			buildCodes(Enc, TakeCodesFrom, MaxSymbolIndex);
+			buildCodes(Enc, InitNodes, MaxSymbolIndex);
 		}
 
 		return Success;
@@ -173,7 +172,7 @@ struct HuffDefaultBuild
 			if (CodesWithLen)
 			{
 				Writer.writeMSB(CodesWithLen, MaxCountBits);
-				Writer.writeMSB(i, 4);
+				Writer.writeMSB(i - 1, 4);
 
 				while (CodesWithLen--)
 				{
@@ -255,8 +254,11 @@ private:
 
 			if (CodeLen != HUFF_MAX_CODELEN)
 			{
-				MemCopy(SizeOfEntries, BuildNodes, InitNodes);
-				limitCodeLength(BuildNodes, SymCount, CodeLen);
+				limitCodeLength(InitNodes, SymCount, CodeLen);
+			}
+			else
+			{
+				MemCopy(SizeOfEntries, InitNodes, BuildNodes);
 			}
 		}
 		else
@@ -273,15 +275,15 @@ private:
 		b32 Result = true;
 
 		u32 k = 0;
-		u32 MaxK = (1 << MaxLen) - 1;
+		u32 MaxK = 1 << MaxLen;
 
-		for (s32 i = Count; i >= 0; --i)
+		for (s32 i = Count - 1; i >= 0; --i)
 		{
 			Nodes[i].Len = (Nodes[i].Len < MaxLen) ? Nodes[i].Len : MaxLen;
 			k += 1 << (MaxLen - Nodes[i].Len);
 		}
 
-		for (s32 i = Count; (i >= 0) && (k > MaxK); i--)
+		for (s32 i = Count - 1; (i >= 0) && (k > MaxK); i--)
 		{
 			if (Nodes[i].Len < MaxLen)
 			{
@@ -319,7 +321,6 @@ private:
 		return Result;
 	}
 
-
 	void buildCodes(HuffEncoder& Enc, huff_node* Nodes, u32 Count)
 	{
 		u32 Code = 0;
@@ -351,8 +352,6 @@ private:
 #endif
 		}
 	}
-private:
-
 };
 
 struct HuffDecoder
@@ -407,6 +406,8 @@ struct HuffDecTableInfo
 
 			u64 CodeLen = Reader.peek(4);
 			Reader.consume(4);
+
+			++CodeLen;
 
 			CodeLenCount[CodeLen] = CodesWithLen;
 			MinCodeLen = CodeLen < MinCodeLen ? CodeLen : MinCodeLen;

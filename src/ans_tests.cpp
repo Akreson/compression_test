@@ -9,7 +9,7 @@ TestBasicRans8(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 14;
+	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
 
 	u64 BuffSize = InputFile.Size;
