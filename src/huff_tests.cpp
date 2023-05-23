@@ -5,7 +5,6 @@ TestHuff1(file_data& InputFile)
 {
 	printf("TestHuff1\n");
 
-	const u32 RunsCount = 5;
 	const u32 HuffTableLog = 12;
 
 	if (InputFile.Size > MaxUInt32)
@@ -29,7 +28,7 @@ TestHuff1(file_data& InputFile)
 	
 	printf("huff encode\n");
 	AccumTime EncAccum;
-	for (u32 Run = 0; Run < RunsCount; Run++)
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
 		Writer.init(EncBuff, InputFile.Size);
 		HuffBuild.writeTable(Writer);
@@ -55,7 +54,7 @@ TestHuff1(file_data& InputFile)
 	u32 TotalEncSize = Writer.Stream.Pos - Writer.Stream.Start;
 	u32 HeaderSize = TotalEncSize - SymEncSize;
 	
-	PrintAvgPerSymbolPerfStats(EncAccum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(EncAccum, RUNS_COUNT, InputFile.Size);
 
 #if 1
 
@@ -72,7 +71,7 @@ TestHuff1(file_data& InputFile)
 
 	printf("huff decode\n");
 	AccumTime DecAccum;
-	for (u32 Run = 0; Run < RunsCount; Run++)
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
 		Reader.init(EncBuff, TotalEncSize);
 		HuffDecInfo.readTable(Reader);
@@ -106,6 +105,6 @@ TestHuff1(file_data& InputFile)
 		DecAccum.update(EncClocks, EncTime);
 	}
 
-	PrintAvgPerSymbolPerfStats(DecAccum, RunsCount, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(DecAccum, RUNS_COUNT, InputFile.Size);
 #endif
 }
