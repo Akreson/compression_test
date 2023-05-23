@@ -485,7 +485,7 @@ TestTableDecodeRans16(file_data& InputFile)
 void
 TestTableInterleavedRans16(file_data& InputFile)
 {
-	u32 RunsCount = 10;
+	u32 RunsCount = 5;
 	printf("TestTableInterleavedRans16\n");
 
 	static constexpr u32 ProbBit = 12;
@@ -939,6 +939,9 @@ TestNormalizationRans32(file_data& InputFile)
 
 		printf("\n");
 	}
+
+	delete[] OutBuff;
+	delete[] DecBuff;
 }
 
 using freq_val_o1 = array2d<u32, 256, 256>;

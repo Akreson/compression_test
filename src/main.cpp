@@ -34,13 +34,13 @@ main(int argc, char** argv)
 		//TestACBasicModel(InputFile);
 		//TestPPMModel(InputFile);
 	
-		//TestBasicRans8(InputFile);
+		TestBasicRans8(InputFile);
 		//TestBasicRans32(InputFile);
-		//TestFastEncodeRans8(InputFile);
+		TestFastEncodeRans8(InputFile);
 		//TestFastEncodeRans32(InputFile);
 		//TestTableDecodeRans16(InputFile);
 		//TestTableInterleavedRans16(InputFile);
-		//TestTableInterleavedRans32(InputFile);
+		TestTableInterleavedRans32(InputFile);
 		//TestSIMDDecodeRans16(InputFile);
 		//TestNormalizationRans32(InputFile);
 		//TestPrecomputeAdaptiveOrder1Rans32(InputFile);

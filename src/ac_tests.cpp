@@ -69,6 +69,8 @@ TestACBasicModel(file_data& InputFile)
 	}
 
 	delete[] OutputFile.Data;
+
+	printf("\n");
 }
 
 void
@@ -149,4 +151,6 @@ TestPPMModel(file_data& InputFile)
 
 	delete[] OutputFile.Data;
 #endif
+
+	printf("\n");
 }

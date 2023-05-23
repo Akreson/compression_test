@@ -299,7 +299,7 @@ ReadTestFiles(std::vector<file_data>& InputArr, const char* Str)
 inline void
 PrintCompressionSize(u64 InitSize, u64 CompSize)
 {
-	printf("%lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
+	printf(" %lu bytes | %.3f ratio\n", CompSize, (f64)InitSize / (f64)CompSize);
 }
 
 inline void

@@ -1,7 +1,7 @@
 
 struct see_context
 {
-	u16 Summ;
+	u16 Sum;
 	u8 Shift;
 	u8 Count;
 };
@@ -68,8 +68,8 @@ public:
 
 	inline u16 getMean(see_context* Context)
 	{
-		u32 Result = Context->Summ >> Context->Shift;
-		Context->Summ -= Result;
+		u32 Result = Context->Sum >> Context->Shift;
+		Context->Sum -= Result;
 		Result = Result ? Result : 1;
 		return Result;
 	}
@@ -77,7 +77,7 @@ public:
 	inline void updateLastUsed(void)
 	{
 		if ((LastUsed->Shift < CTX_MAX_BITS) && (--LastUsed->Count == 0)) {
-			LastUsed->Summ += LastUsed->Summ;
+			LastUsed->Sum += LastUsed->Sum;
 			LastUsed->Count = 2 << ++LastUsed->Shift;
 		}
 	}
@@ -110,7 +110,7 @@ public:
 		see_context Result = {};
 
 		Result.Shift = CTX_MAX_BITS - 3;
-		Result.Summ = Init << Result.Shift;
+		Result.Sum = Init << Result.Shift;
 		Result.Count = 16;
 
 		return Result;

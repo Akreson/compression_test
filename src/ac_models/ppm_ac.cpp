@@ -308,7 +308,7 @@ private:
 		}
 		else
 		{
-			SEE->LastUsed->Summ += Result.Prob.scale;
+			SEE->LastUsed->Sum += Result.Prob.scale;
 			Result.Prob.hi = Result.Prob.scale;
 			Result.Prob.lo = CumFreq;
 			Result.Symbol = EscapeSymbol;
@@ -475,7 +475,7 @@ private:
 		{
 			Prob.scale += Prob.lo;
 			Prob.hi = Prob.scale;
-			SEE->LastUsed->Summ += Prob.scale;
+			SEE->LastUsed->Sum += Prob.scale;
 			LastMaskedCount = MinContext->SymbolCount;
 			updateExclusionData(MinContext);
 		}
