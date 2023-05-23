@@ -7,7 +7,7 @@
 void
 TestBasicRans8(file_data& InputFile)
 {
-	printf("TestBasicRans8\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -98,7 +98,7 @@ TestBasicRans8(file_data& InputFile)
 void
 TestBasicRans32(file_data& InputFile)
 {
-	printf("TestBasicRans32\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -188,7 +188,7 @@ TestBasicRans32(file_data& InputFile)
 void
 TestFastEncodeRans8(file_data& InputFile)
 {
-	printf("TestFastEncodeRans8\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -288,7 +288,7 @@ TestFastEncodeRans8(file_data& InputFile)
 void
 TestFastEncodeRans32(file_data& InputFile)
 {
-	printf("TestFastEncodeRans32\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -389,7 +389,7 @@ TestFastEncodeRans32(file_data& InputFile)
 void
 TestTableDecodeRans16(file_data& InputFile)
 {
-	printf("TestTableDecodeRans16\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 14;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -480,7 +480,7 @@ TestTableDecodeRans16(file_data& InputFile)
 void
 TestTableInterleavedRans16(file_data& InputFile)
 {
-	printf("TestTableInterleavedRans16\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -592,7 +592,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 void
 TestTableInterleavedRans32(file_data& InputFile)
 {
-	printf("TestTableInterleavedRans32\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -706,7 +706,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 void
 TestSIMDDecodeRans16(file_data& InputFile)
 {
-	printf("TestSIMDDecodeRans16\n");
+	PRINT_TEST_FUNC();
 
 	static constexpr u32 ProbBit = 12;
 	static constexpr u32 ProbScale = 1 << ProbBit;
@@ -857,7 +857,7 @@ DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq,
 void
 TestNormalizationRans32(file_data& InputFile)
 {
-	printf("TestNormalizationRans32\n");
+	PRINT_TEST_FUNC();
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
@@ -1015,7 +1015,7 @@ InitEqDistCDF(u16* CDF, u32 SymCount, u32 ProbScale)
 void
 TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 {
-	printf("TestPrecomputeAdaptiveOrder1Rans32\n");
+	PRINT_TEST_FUNC();
 	
 	const u32 AdaptRate = 1;
 	const u32 SymCount = 256;

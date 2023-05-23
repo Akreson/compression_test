@@ -44,7 +44,7 @@ DecompressFile(BasicByteModel& Model, file_data& OutputFile, ByteVec& InputBuffe
 void
 TestACBasicModel(file_data& InputFile)
 {
-	printf("TestACBasicModel");
+	PRINT_TEST_FUNC();
 
 	BasicByteModel Model;
 	ByteVec CompressBuffer;

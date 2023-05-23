@@ -3,7 +3,7 @@
 void
 TestHuff1(file_data& InputFile)
 {
-	printf("TestHuff1\n");
+	PRINT_TEST_FUNC();
 
 	const u32 HuffTableLog = 12;
 

@@ -44,6 +44,8 @@ main(int argc, char** argv)
 		//TestSIMDDecodeRans16(InputFile);
 		//TestNormalizationRans32(InputFile);
 		//TestPrecomputeAdaptiveOrder1Rans32(InputFile);
+
+		printf("\n");
 	}
 
 	return 0;
