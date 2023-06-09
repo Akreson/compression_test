@@ -16,6 +16,7 @@ CompressFile(BasicByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
 
 	prob SymbolProb = Model.getEndStreamProb();
 	Encoder.encode(SymbolProb);
+	Encoder.flush();
 }
 
 void
@@ -90,6 +91,7 @@ CompressFile(PPMByte& Model, file_data& InputFile, ByteVec& OutBuffer)
 	}
 
 	Model.encodeEndOfStream(Encoder);
+	Encoder.flush();
 }
 
 void

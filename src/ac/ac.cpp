@@ -12,10 +12,13 @@ public:
 	u8 BitAccumCount;
 
 	ArithEncoder() = delete;
-	ArithEncoder(ByteVec& OutBuffer) :
-		Bytes(OutBuffer), lo(0), hi(CODE_MAX_VALUE), PendingBits(0), BitBuff(0), BitAccumCount(8) {}
+	~ArithEncoder() = default;
+	ArithEncoder(ByteVec& OutBuffer) : Bytes(OutBuffer)
+	{
+		initVal();
+	}
 
-	~ArithEncoder()
+	inline void flush()
 	{
 		PendingBits++;
 		if (lo < ONE_FOURTH) writeBit(0);
@@ -24,13 +27,10 @@ public:
 		if (BitBuff) Bytes.push_back(BitBuff);
 	}
 
-	void flush()
+	inline void reset()
 	{
-		PendingBits++;
-		if (lo < ONE_FOURTH) writeBit(0);
-		else writeBit(1);
-
-		if (BitBuff) Bytes.push_back(BitBuff);
+		Bytes.clear();
+		initVal();
 	}
 
 	void encode(prob Prob)
@@ -68,6 +68,16 @@ public:
 	}
 
 private:
+	
+	inline void initVal()
+	{
+		lo = 0;
+		hi = CODE_MAX_VALUE;
+		PendingBits = 0;
+		BitBuff = 0;
+		BitAccumCount = 8;
+	}
+
 	inline void fillBitBuff(u32 Bit)
 	{
 		--BitAccumCount;
@@ -109,18 +119,28 @@ public:
 	u32 ReadBitPos;
 
 	ArithDecoder() = delete;
-	ArithDecoder(ByteVec& InputBuffer) :
-		BytesIn(InputBuffer), lo(0), hi(CODE_MAX_VALUE), code(0), ReadBytesPos(0), ReadBitPos(8)
+	~ArithDecoder() = default;
+	
+	ArithDecoder(ByteVec& InputBuffer) : BytesIn(InputBuffer)
 	{
 		InSize = InputBuffer.size();
+		reset();
+	}
 
-		for (u32 i = 0; i < 3; ++i)
+	inline void reset()
+	{
+		lo = 0;
+		hi = CODE_MAX_VALUE;
+		code = 0;
+		ReadBytesPos = 0;
+		ReadBitPos = 8;
+
+		Assert((CODE_BITS % 8) == 0);
+		for (u32 i = 0; i < (CODE_BITS >> 3); ++i)
 		{
 			code = (code << 8) | getByte();
 		}
 	}
-
-	~ArithDecoder() {}
 
 	u32 getCurrFreq(u32 Scale)
 	{
