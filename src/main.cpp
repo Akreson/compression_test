@@ -29,8 +29,9 @@ main(int argc, char** argv)
 		f64 FileByteH = Entropy(ByteCount, 256);
 		printf("---------- %s %lu H:%.3f\n", InputFile.Name.c_str(), InputFile.Size, FileByteH);
 
-		TestHuffDefault1(InputFile);
+		//TestHuffDefault1(InputFile);
 
+		TestStaticAC(InputFile);
 		//TestACBasicModel(InputFile);
 		//TestPPMModel(InputFile);
 	

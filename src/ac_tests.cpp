@@ -3,6 +3,86 @@
 #include "ac_models/ppm_ac.cpp"
 
 void
+CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
+{
+	ArithEncoder Encoder(OutBuffer);
+	prob SymbolProb;
+	SymbolProb.scale = ByteCumFreq[256];
+
+	for (u32 i = 0; i < InputFile.Size; ++i)
+	{
+		u8 byte = InputFile.Data[i];
+		SymbolProb.lo = ByteCumFreq[byte];
+		SymbolProb.hi = ByteCumFreq[byte + 1];
+		Encoder.encode(SymbolProb);
+	}
+
+	Encoder.flush();
+}
+
+void
+DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBuffer, file_data& InputFile)
+{
+	ArithDecoder Decoder(InputBuffer);
+
+	prob Prob;
+	Prob.scale = ByteCumFreq[256];
+
+	for (u64 ByteIndex = 0; ByteIndex < OutputFile.Size; ByteIndex++)
+	{
+		u32 DecodedFreq = Decoder.getCurrFreq(Prob.scale);
+
+		u32 DecodedSymbol;
+		for (u32 i = 0; i < 256; ++i)
+		{
+			if (DecodedFreq < ByteCumFreq[i + 1])
+			{
+				DecodedSymbol = i;
+
+				Prob.lo = ByteCumFreq[i];
+				Prob.hi = ByteCumFreq[i + 1];
+				break;
+			}
+		}
+
+		Decoder.updateDecodeRange(Prob);
+
+		Assert(InputFile.Data[ByteIndex] == DecodedSymbol)
+		OutputFile.Data[ByteIndex] = DecodedSymbol;
+	}
+}
+
+void
+TestStaticAC(file_data& InputFile)
+{
+	u32 Freq[256] = {};
+	CountByte(Freq, InputFile.Data, InputFile.Size);
+
+	u16 NormFreq[256];
+	u16 CumFreq[257];
+	
+	ZeroSize(NormFreq, sizeof(NormFreq));
+	ZeroSize(CumFreq, sizeof(CumFreq));
+
+	OptimalNormalize(Freq, NormFreq, InputFile.Size, 256, 1 << 14);
+	CalcCumFreq(NormFreq, CumFreq, 256);
+
+	ByteVec CompressBuffer;
+
+	CompressStaticACFile(CumFreq, InputFile, CompressBuffer);
+	u64 CompressedSize = CompressBuffer.size();
+
+	PrintCompressionSize(InputFile.Size, CompressedSize);
+
+	file_data OutputFile;
+	OutputFile.Size = InputFile.Size;
+	OutputFile.Data = new u8[OutputFile.Size];
+
+	DecompressStaticACFile(CumFreq, OutputFile, CompressBuffer, InputFile);
+	delete[] OutputFile.Data;
+}
+
+void
 CompressFile(BasicByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
 {
 	ArithEncoder Encoder(OutBuffer);
