@@ -298,7 +298,7 @@ ReadTestFiles(std::vector<file_data>& InputArr, const char* Str)
 	}
 }
 
-#define PRINT_TEST_FUNC() {printf("-- %s\n", __func__);}
+#define PRINT_TEST_FUNC() {printf("--- %s\n", __func__);}
 
 inline void
 PrintCompressionSize(u64 InitSize, u64 CompSize)
