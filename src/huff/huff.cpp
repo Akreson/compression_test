@@ -142,11 +142,6 @@ struct HuffDefaultBuild
 		huff_node* BuildNodes = Nodes + BuildStartIndex;
 		b32 Success = limitLengthForStandartHuffTree(SymFreq, InitNodes, BuildNodes, MaxSymbolIndex, MaxCodeLen);
 
-		if (Success)
-		{
-			buildCodes(Enc, InitNodes, MaxSymbolIndex);
-		}
-
 		return Success;
 	}
 
@@ -197,6 +192,37 @@ struct HuffDefaultBuild
 		return Size;
 	}
 
+	void buildCodes(HuffEncoder& Enc)
+	{
+		u32 Code = 0;
+		u32 LastLen = 0;
+
+		for (u32 i = 1; i < (MaxSymbolIndex + 1); i++)
+		{
+			u32 Len = Nodes[i].Len;
+			if (LastLen != Len)
+			{
+				if (LastLen)
+				{
+					Code++;
+					Code <<= (Len - LastLen);
+				}
+				LastLen = Len;
+			}
+			else
+			{
+				Code++;
+			}
+
+			u32 Sym = Nodes[i].Sym;
+			Enc.Table[Sym].Len = Len;
+			Enc.Table[Sym].Code = Code;
+
+#if LOG_HUFFBUILD
+			printf("code:%s hex:%x len:%d symbol:%d\n", ToBinary(Code, Len).c_str(), Code, Len, Sym);
+#endif
+		}
+	}
 private:
 	inline u32 getNodeIndex(huff_node* Nodes, huff_def_build_iter& Iter)
 	{
@@ -235,7 +261,7 @@ private:
 			for (; BuildLog <= HUFF_MAX_CODELEN; BuildLog++)
 			{
 				MemCopy(SizeOfEntries, BuildNodes, InitNodes);
-				Result = limitCodeLength(BuildNodes, SymCount, BuildLog);
+				Result = limitCodeLengthByRank(BuildNodes, SymCount, BuildLog);
 
 				if (Result)
 				{
@@ -254,7 +280,7 @@ private:
 
 			if (CodeLen != HUFF_MAX_CODELEN)
 			{
-				limitCodeLength(InitNodes, SymCount, CodeLen);
+				limitCodeLengthByRank(InitNodes, SymCount, CodeLen);
 			}
 			else
 			{
@@ -264,10 +290,133 @@ private:
 		else
 		{
 			CodeLen = MinTableLog > MaxCodeLen ? MinTableLog : MaxCodeLen;
-			Result = limitCodeLength(InitNodes, SymCount, CodeLen);
+			if (InitNodes[SymCount - 1].Len <= CodeLen)
+			{
+				Result = true;
+			}
+			else
+			{
+#if 1
+				Result = limitCodeLengthByRank(InitNodes, SymCount, CodeLen);
+#else
+				Result = limitCodeLength(InitNodes, SymCount, CodeLen);
+#endif
+			}
 		}
 
 		return Result;
+	}
+
+	// copy of zstd HUF_setMaxHeight
+	// https://fastcompression.blogspot.com/2015/07/huffman-revisited-part-3-depth-limited.html
+	// https://cbloomrants.blogspot.com/2018/04/the-kraft-number-binary-arithmetic-and.html
+	inline b32 limitCodeLengthByRank(huff_node* Nodes, u32 Count, u32 MaxLen)
+	{
+
+		u32 LastAt = Count - 1;
+		s32 TotalDept = 0;
+#if 0
+		u32 k1 = 0;
+		u32 MaxK = 1 << MaxLen;
+		for (s32 i = Count - 1; i >= 0; --i)
+		{
+			Nodes[i].Len = (Nodes[i].Len < MaxLen) ? Nodes[i].Len : MaxLen;
+			k1 += 1 << (MaxLen - Nodes[i].Len);
+		}
+		TotalDept = k1 - MaxK;
+#else
+		u32 LargestLen = Nodes[LastAt].Len;
+		u32 k = 1 << (LargestLen - MaxLen);
+		while (Nodes[LastAt].Len > MaxLen)
+		{
+			TotalDept += k - (1 << (LargestLen - Nodes[LastAt].Len));
+			Nodes[LastAt].Len = MaxLen;
+			LastAt--;
+		}
+
+		TotalDept >>= LargestLen - MaxLen;
+#endif
+		Assert(TotalDept > 0);
+
+		while (Nodes[LastAt].Len == MaxLen) LastAt--;
+
+		u32 NoSymbols = 0xFFFFFFFF;
+		u32 Ranks[HUFF_MAX_CODELEN + 2];
+		MemSet(Ranks, sizeof(Ranks) / sizeof(u32), NoSymbols);
+		
+		u32 MappedRank = MaxLen;
+		for (s32 i = LastAt; i >= 0; i--)
+		{
+			u32 NodeLen = Nodes[i].Len;
+			if (NodeLen >= MappedRank) continue;
+			MappedRank = NodeLen;
+			Ranks[MaxLen - MappedRank] = i;
+		}
+
+		while (TotalDept > 0)
+		{
+			u32 ScanResult = FindMostSignificantSetBit(TotalDept);
+			u32 BitsDeptIndex = ScanResult + 1;
+
+			for (; BitsDeptIndex > 1; BitsDeptIndex--)
+			{
+				u32 HighIndex = Ranks[BitsDeptIndex];
+				u32 LowIndex = Ranks[BitsDeptIndex - 1];
+
+				if (HighIndex == NoSymbols) continue;
+				if (LowIndex == NoSymbols) break;
+
+				u32 HighTotal = Nodes[HighIndex].Freq;
+				u32 LowTotal = 2*Nodes[LowIndex].Freq;
+
+				if (HighTotal <= LowTotal) break;
+			}
+
+			while ((BitsDeptIndex <= HUFF_MAX_CODELEN) && (Ranks[BitsDeptIndex] == NoSymbols))
+				BitsDeptIndex++;
+
+			Assert(Ranks[BitsDeptIndex] != NoSymbols);
+
+			TotalDept -= 1 << (BitsDeptIndex - 1);
+			Nodes[Ranks[BitsDeptIndex]].Len++;
+
+			if (Ranks[BitsDeptIndex - 1] == NoSymbols)
+			{
+				Ranks[BitsDeptIndex - 1] = Ranks[BitsDeptIndex];
+			}
+
+			if (Ranks[BitsDeptIndex] == 0)
+			{
+				Ranks[BitsDeptIndex] = NoSymbols;
+			}
+			else
+			{
+				Ranks[BitsDeptIndex]--;
+				u32 LastRank = Nodes[Ranks[BitsDeptIndex]].Len;
+				if (LastRank != (MaxLen - BitsDeptIndex))
+				{
+					Ranks[BitsDeptIndex] = NoSymbols;
+				}
+			}
+		}
+
+		while (TotalDept < 0)
+		{
+			if (Ranks[1] == NoSymbols)
+			{
+				while (Nodes[LastAt].Len == MaxLen) LastAt--;
+				Nodes[LastAt + 1].Len--;
+				Ranks[1] = LastAt;
+				TotalDept++;
+				continue;
+			}
+
+			Nodes[Ranks[1] + 1].Len--;
+			Ranks[1]++;
+			TotalDept++;
+		}
+
+		return (TotalDept <= 0);
 	}
 
 	inline b32 limitCodeLength(huff_node* Nodes, u32 Count, u32 MaxLen)
@@ -319,38 +468,6 @@ private:
 		}
 
 		return Result;
-	}
-
-	void buildCodes(HuffEncoder& Enc, huff_node* Nodes, u32 Count)
-	{
-		u32 Code = 0;
-		u32 LastLen = 0;
-
-		for (u32 i = 0; i < Count; i++)
-		{
-			u32 Len = Nodes[i].Len;
-			if (LastLen != Len)
-			{
-				if (LastLen)
-				{
-					Code++;
-					Code <<= (Len - LastLen);
-				}
-				LastLen = Len;
-			}
-			else
-			{
-				Code++;
-			}
-
-			u32 Sym = Nodes[i].Sym;
-			Enc.Table[Sym].Len = Len;
-			Enc.Table[Sym].Code = Code;
-
-#if LOG_HUFFBUILD
-			printf("code:%s hex:%x len:%d symbol:%d\n", ToBinary(Code, Len).c_str(), Code, Len, Sym);
-#endif
-		}
 	}
 };
 

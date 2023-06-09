@@ -5,7 +5,7 @@ TestHuffDefault1(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	const u32 HuffTableLog = 12;
+	const u32 HuffTableLog = 11;
 
 	if (InputFile.Size > MaxUInt32)
 	{
@@ -20,9 +20,26 @@ TestHuffDefault1(file_data& InputFile)
 	HuffEncoder HEnc;
 	HuffDefaultBuild HuffBuild;
 
-	b32 Success = HuffBuild.buildTable(HEnc, ByteCount, HuffTableLog);
-	Assert(Success);
+	AccumTime BuildAccum;
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		f64 StartTime = timer();
+		u64 StartClock = __rdtsc();
 
+		b32 Success = HuffBuild.buildTable(HEnc, ByteCount, HuffTableLog);
+		Assert(Success);
+
+		u64 Clocks = __rdtsc() - StartClock;
+		f64 Time = timer() - StartTime;
+		BuildAccum.update(Clocks, Time);
+	}
+
+	BuildAccum.Clock /= RUNS_COUNT;
+	BuildAccum.Time /= RUNS_COUNT;
+	printf("Table build - %lu clocks, %0.6f ms \n", BuildAccum.MaxClock, BuildAccum.MaxTime *1000.0);
+
+	HuffBuild.buildCodes(HEnc);
+	
 	u32 SymEncSize = HuffBuild.countSize(ByteCount);
 	u8* EncBuff = new u8[InputFile.Size];
 	
