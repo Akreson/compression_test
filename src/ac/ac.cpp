@@ -1,6 +1,6 @@
 #include "ac_params.h"
 
-struct ArithEncoder
+struct ArithBitEncoder
 {
 public:
 	u32 lo;
@@ -11,9 +11,9 @@ public:
 	u8 BitBuff;
 	u8 BitAccumCount;
 
-	ArithEncoder() = delete;
-	~ArithEncoder() = default;
-	ArithEncoder(ByteVec& OutBuffer) : Bytes(OutBuffer)
+	ArithBitEncoder() = delete;
+	~ArithBitEncoder() = default;
+	ArithBitEncoder(ByteVec& OutBuffer) : Bytes(OutBuffer)
 	{
 		initVal();
 	}
@@ -104,7 +104,7 @@ private:
 	}
 };
 
-struct ArithDecoder
+struct ArithBitDecoder
 {
 public:
 	u32 lo;
@@ -118,10 +118,10 @@ public:
 	u32 ReadBytesPos;
 	u32 ReadBitPos;
 
-	ArithDecoder() = delete;
-	~ArithDecoder() = default;
-	
-	ArithDecoder(ByteVec& InputBuffer) : BytesIn(InputBuffer)
+	ArithBitDecoder() = delete;
+	~ArithBitDecoder() = default;
+
+	ArithBitDecoder(ByteVec& InputBuffer) : BytesIn(InputBuffer)
 	{
 		InSize = InputBuffer.size();
 		reset();

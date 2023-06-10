@@ -1,4 +1,14 @@
 #include "ac/ac.cpp"
+#include "ac/ac_range.cpp"
+
+#if 1
+using ArithEncoder = ArithBitEncoder;
+using ArithDecoder = ArithBitDecoder;
+#else
+using ArithEncoder = ArithByteEncoder;
+using ArithDecoder = ArithByteDecoder;
+#endif
+
 #include "ac_models/basic_ac.cpp"
 #include "ac_models/ppm_ac.cpp"
 
