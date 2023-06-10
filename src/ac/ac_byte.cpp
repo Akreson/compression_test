@@ -43,9 +43,9 @@ struct ArithByteEncoder
 			if ((lo ^ (lo + range)) < CODE_MAX_VALUE)
 			{
 			}
-			else if (range < FREQ_MAX_VALUE)
+			else if (range < PROB_MAX_VALUE)
 			{
-				range = ~lo & FREQ_MAX_VALUE - 1;
+				range = (-((s32)lo)) & PROB_MAX_VALUE - 1;
 			}
 			else break;
 
@@ -111,9 +111,9 @@ struct ArithByteDecoder
 			if ((lo ^ (lo + range)) < CODE_MAX_VALUE)
 			{
 			}
-			else if (range < FREQ_MAX_VALUE)
+			else if (range < PROB_MAX_VALUE)
 			{
-				range = ~lo & FREQ_MAX_VALUE - 1;
+				range = (-((s32)lo)) & PROB_MAX_VALUE - 1;
 			}
 			else break;
 

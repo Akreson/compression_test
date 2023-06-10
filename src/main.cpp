@@ -31,9 +31,9 @@ main(int argc, char** argv)
 
 		//TestHuffDefault1(InputFile);
 
-		TestStaticAC(InputFile);
+		//TestStaticAC(InputFile);
 		//TestACBasicModel(InputFile);
-		//TestPPMModel(InputFile);
+		TestPPMModel(InputFile);
 	
 		//TestBasicRans8(InputFile);
 		//TestBasicRans32(InputFile);

@@ -1,7 +1,7 @@
-#include "ac/ac.cpp"
-#include "ac/ac_range.cpp"
+#include "ac/ac_bit.cpp"
+#include "ac/ac_byte.cpp"
 
-#if 1
+#if 0
 using ArithEncoder = ArithBitEncoder;
 using ArithDecoder = ArithBitDecoder;
 #else
