@@ -46,6 +46,8 @@ CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 			{
 				Encoder.encode(Prob);
 			}
+
+			Encoder.normalize();
 		}
 
 		Encoder.flush();
@@ -187,6 +189,7 @@ CompressFile(BasicByteModel& Model, file_data& InputFile, ByteVec& OutBuffer)
 	{
 		prob SymbolProb = Model.getProb(InputFile.Data[i]);
 		Encoder.encode(SymbolProb);
+		Encoder.normalize();
 		Model.update(InputFile.Data[i]);
 	}
 

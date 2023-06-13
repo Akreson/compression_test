@@ -37,8 +37,6 @@ struct ArithByteEncoder
 		range /= Prob.scale;
 		lo += Prob.lo * range;
 		range *= Prob.hi - Prob.lo;
-
-		normalize();
 	}
 
 	void encodeShift(prob Prob)
@@ -49,11 +47,8 @@ struct ArithByteEncoder
 		range >>= Prob.scale;
 		lo += Prob.lo * range;
 		range *= Prob.hi - Prob.lo;
-
-		normalize();
 	}
 
-private:
 	inline void normalize()
 	{
 		for (;;)
@@ -73,6 +68,7 @@ private:
 			Bytes.push_back(Byte);
 		}
 	}
+private:
 
 	inline void initVal()
 	{

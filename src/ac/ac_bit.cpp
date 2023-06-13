@@ -40,8 +40,6 @@ public:
 		u32 step = ((hi - lo) + 1) / Prob.scale;
 		hi = lo + (Prob.hi * step) - 1;
 		lo = lo + (Prob.lo * step);
-
-		normalize();
 	}
 
 	void encodeShift(prob Prob)
@@ -52,11 +50,8 @@ public:
 		u32 step = ((hi - lo) + 1) >> Prob.scale;
 		hi = lo + (Prob.hi * step) - 1;
 		lo = lo + (Prob.lo * step);
-
-		normalize();
 	}
 
-private:
 	inline void normalize()
 	{
 		for (;;)
@@ -84,6 +79,7 @@ private:
 			lo &= CODE_MAX_VALUE;
 		}
 	}
+private:
 	
 	inline void initVal()
 	{

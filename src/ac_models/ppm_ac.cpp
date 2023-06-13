@@ -50,14 +50,19 @@ public:
 		if (MinContext->SymbolCount == 1)
 		{
 			Success = getEncodeProbBin(Prob, Symbol);
+			Encoder.encodeShift(Prob);
+#ifdef _DEBUG
+			Prob.scale = FREQ_MAX_VALUE;
+#endif
 		}
 		else
 		{
 			Success = getEncodeProbLeaf(Prob, Symbol);
+			Encoder.encode(Prob);
 		}
-
+		
 		calcEncBits(Prob, Success);
-		Encoder.encode(Prob);
+		Encoder.normalize();
 
 		while (!Success)
 		{
@@ -72,6 +77,7 @@ public:
 
 			calcEncBits(Prob, Success);
 			Encoder.encode(Prob);
+			Encoder.normalize();
 		}
 
 		if (MinContext == MaxContext)
@@ -93,7 +99,7 @@ public:
 
 		if (MinContext->SymbolCount == 1)
 		{
-			u32 DecFreq = Decoder.getCurrFreq(FREQ_MAX_VALUE);
+			u32 DecFreq = Decoder.getCurrFreqShift(FREQ_MAX_BITS);
 			DecSym = getSymbolFromFreqBin(DecFreq);
 		}
 		else
@@ -557,7 +563,7 @@ private:
 	b32 getEncodeProbBin(prob& Prob, u32 Symbol)
 	{
 		b32 Success = false;
-		Prob.scale = FREQ_MAX_VALUE;
+		Prob.scale = FREQ_MAX_BITS;
 		see_bin_context* BinCtx = SEE->getBinContext(MinContext);
 
 		context_data* First = MinContext->Data;
