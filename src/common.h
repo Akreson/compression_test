@@ -319,7 +319,7 @@ PrintAvgPerSymbolPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
 	Accum.Time /= (f64)RunsCount;
 	printf(" avg of %d runs ", RunsCount);
 	PrintSymbolEncPerfStats(Accum.Clock, Accum.Time, DataSize);
-#if 1
+#if 0
 	printf(" min of %d runs ", RunsCount);
 	PrintSymbolEncPerfStats(Accum.MinClock, Accum.MinTime, DataSize);
 	printf(" max of %d runs ", RunsCount);

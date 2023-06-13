@@ -299,9 +299,11 @@ DecompressFile(PPMByte& Model, file_data& OutputFile, ByteVec& InputBuffer, file
 void
 TestPPMModel(file_data& InputFile)
 {
+	PRINT_TEST_FUNC();
+
 	u32 Order = 4;
 	u32 MemLimit = 20 << 20;
-	printf("TestPPMModel MemLim: %u Order: %u\n", MemLimit, Order);
+	printf(" MemLim: %u Order: %u\n", MemLimit, Order);
 
 	PPMByte PPMModel(Order, MemLimit);
 	ByteVec CompressBuffer;

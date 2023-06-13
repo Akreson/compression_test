@@ -4,13 +4,13 @@
 #include "ans/rans32.cpp"
 #include "ans/static_basic_stats.cpp"
 
+static constexpr u32 RANS_PROB_BIT = 11;
+static constexpr u32 RANS_PROB_SCALE = 1 << RANS_PROB_BIT;
+
 void
 TestBasicRans8(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
-
-	static constexpr u32 ProbBit = 12;
-	static constexpr u32 ProbScale = 1 << ProbBit;
 
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
@@ -18,9 +18,9 @@ TestBasicRans8(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	u8 Cum2Sym[ProbScale];
+	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
 	{
 		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
@@ -45,7 +45,7 @@ TestBasicRans8(file_data& InputFile)
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
-			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
@@ -75,12 +75,12 @@ TestBasicRans8(file_data& InputFile)
 
 		for (u64 i = 0; i < InputFile.Size; i++)
 		{
-			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 CumFreq = Decoder.decodeGet(RANS_PROB_BIT);
 			u32 Symbol = Cum2Sym[CumFreq];
 
 			Assert(InputFile.Data[i] == Symbol);
 			DecBuff[i] = Symbol;
-			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
@@ -100,18 +100,15 @@ TestBasicRans32(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 14;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	u8 Cum2Sym[ProbScale];
+	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
 	{
 		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
@@ -136,7 +133,7 @@ TestBasicRans32(file_data& InputFile)
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
-			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
@@ -165,12 +162,12 @@ TestBasicRans32(file_data& InputFile)
 
 		for (u64 i = 0; i < InputFile.Size; i++)
 		{
-			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 CumFreq = Decoder.decodeGet(RANS_PROB_BIT);
 			u32 Symbol = Cum2Sym[CumFreq];
 
 			Assert(InputFile.Data[i] == Symbol);
 			DecBuff[i] = Symbol;
-			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
@@ -190,18 +187,15 @@ TestFastEncodeRans8(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 14;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	u8 Cum2Sym[ProbScale];
+	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
 	{
 		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
@@ -215,7 +209,7 @@ TestFastEncodeRans8(file_data& InputFile)
 
 	for (int i = 0; i < 256; i++)
 	{
-		RansEncSymInit(&EncSymArr[i], Stats.CumFreq[i], Stats.Freq[i], ProbBit, Rans8L, 8);
+		RansEncSymInit(&EncSymArr[i], Stats.CumFreq[i], Stats.Freq[i], RANS_PROB_BIT, Rans8L, 8);
 		RansDecSymInit(&DecSymArr[i], Stats.CumFreq[i], Stats.Freq[i]);
 	}
 
@@ -264,13 +258,13 @@ TestFastEncodeRans8(file_data& InputFile)
 
 		for (u64 i = 0; i < InputFile.Size; i++)
 		{
-			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 CumFreq = Decoder.decodeGet(RANS_PROB_BIT);
 			u32 Symbol = Cum2Sym[CumFreq];
 
 			Assert(InputFile.Data[i] == Symbol);
 			DecBuff[i] = Symbol;
 
-			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], ProbBit);
+			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], RANS_PROB_BIT);
 		}
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
@@ -290,18 +284,15 @@ TestFastEncodeRans32(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 14;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	u8 Cum2Sym[ProbScale];
+	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
 	{
 		for (u32 j = Stats.CumFreq[SymbolIndex]; j < Stats.CumFreq[SymbolIndex + 1]; j++)
@@ -315,7 +306,7 @@ TestFastEncodeRans32(file_data& InputFile)
 
 	for (int i = 0; i < 256; i++)
 	{
-		RansEncSymInit(&EncSymArr[i], Stats.CumFreq[i], Stats.Freq[i], ProbBit);
+		RansEncSymInit(&EncSymArr[i], Stats.CumFreq[i], Stats.Freq[i], RANS_PROB_BIT);
 		RansDecSymInit(&DecSymArr[i], Stats.CumFreq[i], Stats.Freq[i]);
 	}
 
@@ -335,7 +326,7 @@ TestFastEncodeRans32(file_data& InputFile)
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
-			Encoder.encode(&Out, &EncSymArr[Symbol], ProbBit);
+			Encoder.encode(&Out, &EncSymArr[Symbol], RANS_PROB_BIT);
 		}
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
@@ -365,13 +356,13 @@ TestFastEncodeRans32(file_data& InputFile)
 
 		for (u64 i = 0; i < InputFile.Size; i++)
 		{
-			u32 CumFreq = Decoder.decodeGet(ProbBit);
+			u32 CumFreq = Decoder.decodeGet(RANS_PROB_BIT);
 			u32 Symbol = Cum2Sym[CumFreq];
 
 			Assert(InputFile.Data[i] == Symbol);
 			DecBuff[i] = Symbol;
 
-			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], ProbBit);
+			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], RANS_PROB_BIT);
 		}
 
 		u64 DecClocks = __rdtsc() - DecStartClock;
@@ -391,18 +382,15 @@ TestTableDecodeRans16(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 14;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	rans_sym_table<ProbScale> Tab;
+	rans_sym_table<RANS_PROB_SCALE> Tab;
 
 	for (u32 i = 0; i < 256; i++)
 	{
@@ -425,7 +413,7 @@ TestTableDecodeRans16(file_data& InputFile)
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
-			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Encoder.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
@@ -455,7 +443,7 @@ TestTableDecodeRans16(file_data& InputFile)
 
 		for (u64 i = 0; i < InputFile.Size; i++)
 		{
-			u8 Symbol = Decoder.decodeSym(Tab, ProbScale, ProbBit);
+			u8 Symbol = Decoder.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 
 			Assert(InputFile.Data[i] == Symbol);
 
@@ -482,18 +470,15 @@ TestTableInterleavedRans16(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 12;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	rans_sym_table<ProbScale> Tab;
+	rans_sym_table<RANS_PROB_SCALE> Tab;
 
 	for (u32 i = 0; i < 256; i++)
 	{
@@ -518,15 +503,15 @@ TestTableInterleavedRans16(file_data& InputFile)
 		if (InputFile.Size & 1)
 		{
 			u8 Symbol = InputFile.Data[InputFile.Size - 1];
-			Enc0.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Enc0.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
 		for (u64 i = (InputFile.Size & ~1); i > 0; i -= 2)
 		{
 			u8 Symbol1 = InputFile.Data[i - 1];
 			u8 Symbol0 = InputFile.Data[i - 2];
-			Enc1.encode(&Out, Stats.CumFreq[Symbol1], Stats.Freq[Symbol1], ProbBit);
-			Enc0.encode(&Out, Stats.CumFreq[Symbol0], Stats.Freq[Symbol0], ProbBit);
+			Enc1.encode(&Out, Stats.CumFreq[Symbol1], Stats.Freq[Symbol1], RANS_PROB_BIT);
+			Enc0.encode(&Out, Stats.CumFreq[Symbol0], Stats.Freq[Symbol0], RANS_PROB_BIT);
 		}
 		Enc1.flush(&Out);
 		Enc0.flush(&Out);
@@ -558,8 +543,8 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 		for (u64 i = 0; i < (InputFile.Size & ~1); i += 2)
 		{
-			u8 Symbol0 = Dec0.decodeSym(Tab, ProbScale, ProbBit);
-			u8 Symbol1 = Dec1.decodeSym(Tab, ProbScale, ProbBit);
+			u8 Symbol0 = Dec0.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
+			u8 Symbol1 = Dec1.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 
 			Assert(InputFile.Data[i] == Symbol0);
 			Assert(InputFile.Data[i + 1] == Symbol1);
@@ -573,7 +558,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 		if (InputFile.Size & 1)
 		{
-			u8 Symbol = Dec0.decodeSym(Tab, ProbScale, ProbBit);
+			u8 Symbol = Dec0.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 			InputFile.Data[InputFile.Size - 1] = Symbol;
 		}
 
@@ -594,18 +579,15 @@ TestTableInterleavedRans32(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 12;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
 	u8* DecBuff = new u8[BuffSize];
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	rans_sym_table<ProbScale> Tab;
+	rans_sym_table<RANS_PROB_SCALE> Tab;
 
 	for (u32 i = 0; i < 256; i++)
 	{
@@ -630,15 +612,15 @@ TestTableInterleavedRans32(file_data& InputFile)
 		if (InputFile.Size & 1)
 		{
 			u8 Symbol = InputFile.Data[InputFile.Size - 1];
-			Enc0.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Enc0.encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
 		for (u64 i = (InputFile.Size & ~1); i > 0; i -= 2)
 		{
 			u8 Symbol1 = InputFile.Data[i - 1];
 			u8 Symbol0 = InputFile.Data[i - 2];
-			Enc1.encode(&Out, Stats.CumFreq[Symbol1], Stats.Freq[Symbol1], ProbBit);
-			Enc0.encode(&Out, Stats.CumFreq[Symbol0], Stats.Freq[Symbol0], ProbBit);
+			Enc1.encode(&Out, Stats.CumFreq[Symbol1], Stats.Freq[Symbol1], RANS_PROB_BIT);
+			Enc0.encode(&Out, Stats.CumFreq[Symbol0], Stats.Freq[Symbol0], RANS_PROB_BIT);
 		}
 		Enc1.flush(&Out);
 		Enc0.flush(&Out);
@@ -670,8 +652,8 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 		for (u64 i = 0; i < (InputFile.Size & ~1); i += 2)
 		{
-			u8 Symbol0 = Dec0.decodeSym(Tab, ProbScale, ProbBit);
-			u8 Symbol1 = Dec1.decodeSym(Tab, ProbScale, ProbBit);
+			u8 Symbol0 = Dec0.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
+			u8 Symbol1 = Dec1.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 
 			Assert(InputFile.Data[i] == Symbol0);
 			Assert(InputFile.Data[i + 1] == Symbol1);
@@ -685,7 +667,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 		if (InputFile.Size & 1)
 		{
-			u8 Symbol = Dec0.decodeSym(Tab, ProbScale, ProbBit);
+			u8 Symbol = Dec0.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 			InputFile.Data[InputFile.Size - 1] = Symbol;
 		}
 
@@ -708,9 +690,6 @@ TestSIMDDecodeRans16(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	static constexpr u32 ProbBit = 12;
-	static constexpr u32 ProbScale = 1 << ProbBit;
-
 	// align buffer size
 	u64 BuffSize = AlignSizeForward(InputFile.Size, 16);
 	u8* OutBuff = new u8[BuffSize];
@@ -718,9 +697,9 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(ProbScale);
+	Stats.normalize(RANS_PROB_SCALE);
 
-	rans_sym_table<ProbScale> Tab;
+	rans_sym_table<RANS_PROB_SCALE> Tab;
 
 	for (u32 i = 0; i < 256; i++)
 	{
@@ -744,7 +723,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
 			u32 Index = (i - 1) & 7;
-			Enc[Index].encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], ProbBit);
+			Enc[Index].encode(&Out, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
 		for (u32 i = 8; i > 0; i--) Enc[i - 1].flush(&Out);
@@ -776,8 +755,8 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 		for (u64 i = 0; i < (InputFile.Size & ~7); i += 8)
 		{
-			u32 Symbol03 = Dec0.decodeSym(Tab, ProbScale, ProbBit);
-			u32 Symbol47 = Dec1.decodeSym(Tab, ProbScale, ProbBit);
+			u32 Symbol03 = Dec0.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
+			u32 Symbol47 = Dec1.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 
 			Assert(Symbol03 == Check4SymDecBuff(InputFile.Data, i));
 			Assert(Symbol47 == Check4SymDecBuff(InputFile.Data, i + 4));
@@ -792,7 +771,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		{
 			Rans16DecSIMD* DecSIMD = (i & 4) != 0 ? &Dec1 : &Dec0;
 			Rans16Dec* Dec = DecSIMD->State.lane + (i & 3);
-			u8 Symbol = Dec->decodeSym(Tab, ProbScale, ProbBit);
+			u8 Symbol = Dec->decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
 			DecBuff[i] = Symbol;
 		}
 
