@@ -12,13 +12,19 @@ using ArithDecoder = ArithByteDecoder;
 #include "ac_models/basic_ac.cpp"
 #include "ac_models/ppm_ac.cpp"
 
-template <typename TypeEncoder> void
+template <typename TypeEncoder, b32 UseShift = false> void
 CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 {
 	TypeEncoder Encoder(OutBuffer);
 	
-	prob SymbolProb;
-	SymbolProb.scale = ByteCumFreq[256];
+	prob Prob;
+	Prob.scale = ByteCumFreq[256];
+
+	if constexpr (UseShift)
+	{
+		Assert(IsPowerOf2(Prob.scale));
+		Prob.scale = FindMostSignificantSetBit(Prob.scale);
+	}
 
 	AccumTime Accum;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
@@ -29,9 +35,17 @@ CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 		for (u32 i = 0; i < InputFile.Size; ++i)
 		{
 			u8 Byte = InputFile.Data[i];
-			SymbolProb.lo = ByteCumFreq[Byte];
-			SymbolProb.hi = ByteCumFreq[Byte + 1];
-			Encoder.encode(SymbolProb);
+			Prob.lo = ByteCumFreq[Byte];
+			Prob.hi = ByteCumFreq[Byte + 1];
+
+			if constexpr (UseShift)
+			{
+				Encoder.encodeShift(Prob);
+			}
+			else
+			{
+				Encoder.encode(Prob);
+			}
 		}
 
 		Encoder.flush();
@@ -49,13 +63,20 @@ CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 }
 
-template <typename TypeDecoder> void
+template <typename TypeDecoder, b32 UseShift = false> void
 DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBuffer, file_data& InputFile)
 {
 	TypeDecoder Decoder(InputBuffer);
 
 	prob Prob;
 	Prob.scale = ByteCumFreq[256];
+	
+	u32 ShiftScale;
+	if constexpr (UseShift)
+	{
+		Assert(IsPowerOf2(Prob.scale));
+		ShiftScale = FindMostSignificantSetBit(Prob.scale);
+	}
 
 	AccumTime Accum;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
@@ -65,7 +86,15 @@ DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBu
 
 		for (u64 ByteIndex = 0; ByteIndex < OutputFile.Size; ByteIndex++)
 		{
-			u32 DecodedFreq = Decoder.getCurrFreq(Prob.scale);
+			u32 DecodedFreq;
+			if constexpr (UseShift)
+			{
+				DecodedFreq = Decoder.getCurrFreqShift(ShiftScale);
+			}
+			else
+			{
+				DecodedFreq = Decoder.getCurrFreq(Prob.scale);
+			}
 
 			u32 DecodedSymbol;
 			for (u32 i = 0; i < 256; ++i)
@@ -118,6 +147,7 @@ TestStaticAC(file_data& InputFile)
 	OutputFile.Size = InputFile.Size;
 	OutputFile.Data = new u8[OutputFile.Size];
 
+#if 0
 	printf(" - ArithBitEncoder\n");
 	CompressStaticACFile<ArithBitEncoder>(CumFreq, InputFile, CompressBuffer);
 	u64 CompressedSize = CompressBuffer.size();
@@ -130,6 +160,20 @@ TestStaticAC(file_data& InputFile)
 	CompressedSize = CompressBuffer.size();
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 	DecompressStaticACFile<ArithByteDecoder>(CumFreq, OutputFile, CompressBuffer, InputFile);
+#else
+	printf(" - ArithBitEncoder\n");
+	CompressStaticACFile<ArithBitEncoder, true>(CumFreq, InputFile, CompressBuffer);
+	u64 CompressedSize = CompressBuffer.size();
+	PrintCompressionSize(InputFile.Size, CompressedSize);
+	DecompressStaticACFile<ArithBitDecoder, true>(CumFreq, OutputFile, CompressBuffer, InputFile);
+	CompressBuffer.clear();
+
+	printf(" - ArithByteEncoder\n");
+	CompressStaticACFile<ArithByteEncoder, true>(CumFreq, InputFile, CompressBuffer);
+	CompressedSize = CompressBuffer.size();
+	PrintCompressionSize(InputFile.Size, CompressedSize);
+	DecompressStaticACFile<ArithByteDecoder, true>(CumFreq, OutputFile, CompressBuffer, InputFile);
+#endif
 
 	delete[] OutputFile.Data;
 }

@@ -41,6 +41,24 @@ public:
 		hi = lo + (Prob.hi * step) - 1;
 		lo = lo + (Prob.lo * step);
 
+		normalize();
+	}
+
+	void encodeShift(prob Prob)
+	{
+		Assert(Prob.scale <= FREQ_MAX_BITS);
+		Assert(IsPowerOf2(1 << Prob.scale)); // prob.scale should be _n_ from 2^n
+
+		u32 step = ((hi - lo) + 1) >> Prob.scale;
+		hi = lo + (Prob.hi * step) - 1;
+		lo = lo + (Prob.lo * step);
+
+		normalize();
+	}
+
+private:
+	inline void normalize()
+	{
 		for (;;)
 		{
 			if (hi < ONE_HALF)
@@ -66,8 +84,6 @@ public:
 			lo &= CODE_MAX_VALUE;
 		}
 	}
-
-private:
 	
 	inline void initVal()
 	{
@@ -149,12 +165,26 @@ public:
 		return scaledValue;
 	}
 
+	u32 getCurrFreqShift(u32 ScaleShift)
+	{
+		Assert(IsPowerOf2(1 << ScaleShift));
+
+		u32 step = ((hi - lo) + 1) >> ScaleShift; // _step_ should be reused
+		u32 scaledValue = (code - lo) / step;
+		return scaledValue;
+	}
+
 	void updateDecodeRange(prob Prob)
 	{
 		u32 step = ((hi - lo) + 1) / Prob.scale;
 		hi = lo + (Prob.hi * step) - 1;
 		lo = lo + (Prob.lo * step);
 
+		normalize();
+	}
+private:
+	inline void normalize()
+	{
 		for (;;)
 		{
 			if (hi < ONE_HALF)
@@ -182,7 +212,6 @@ public:
 		}
 	}
 
-private:
 	inline u32 shiftBitToCode()
 	{
 		u32 Result = code << 1;

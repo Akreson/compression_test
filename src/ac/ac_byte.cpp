@@ -38,6 +38,24 @@ struct ArithByteEncoder
 		lo += Prob.lo * range;
 		range *= Prob.hi - Prob.lo;
 
+		normalize();
+	}
+
+	void encodeShift(prob Prob)
+	{
+		Assert(Prob.scale <= FREQ_MAX_BITS);
+		Assert(IsPowerOf2(1 << Prob.scale)); // prob.scale should be _n_ from 2^n
+
+		range >>= Prob.scale;
+		lo += Prob.lo * range;
+		range *= Prob.hi - Prob.lo;
+
+		normalize();
+	}
+
+private:
+	inline void normalize()
+	{
 		for (;;)
 		{
 			if ((lo ^ (lo + range)) < CODE_MAX_VALUE)
@@ -56,7 +74,6 @@ struct ArithByteEncoder
 		}
 	}
 
-private:
 	inline void initVal()
 	{
 		lo = 0;
@@ -73,6 +90,8 @@ struct ArithByteDecoder
 	u32 ReadBytesPos;
 
 	ArithByteDecoder() = delete;
+	~ArithByteDecoder() = default;
+
 	ArithByteDecoder(ByteVec& InputBuffer) : BytesIn(InputBuffer)
 	{
 		InSize = InputBuffer.size();
@@ -92,11 +111,18 @@ struct ArithByteDecoder
 		}
 	}
 
-	~ArithByteDecoder() {}
-
 	u32 getCurrFreq(u32 Scale)
 	{
 		range /= Scale;
+		u32 Result = (code - lo) / (range);
+		return Result;
+	}
+
+	u32 getCurrFreqShift(u32 ScaleShift)
+	{
+		Assert(IsPowerOf2(1 << ScaleShift));
+
+		range >>= ScaleShift;
 		u32 Result = (code - lo) / (range);
 		return Result;
 	}

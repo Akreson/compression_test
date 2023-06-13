@@ -11,6 +11,8 @@ static constexpr u32 ONE_FOURTH = (1 << (CODE_BITS - 2));
 static constexpr u32 THREE_FOURTHS = ONE_FOURTH * 3;
 static constexpr u32 ONE_HALF = ONE_FOURTH * 2;
 
+static_assert(FREQ_MAX_BITS <= FREQ_BITS);
+
 struct prob
 {
 	u32 lo;
