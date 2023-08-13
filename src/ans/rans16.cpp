@@ -8,7 +8,7 @@ struct Rans16Enc
 
 	Rans16Enc() = default;
 
-	void inline init()
+	inline void init()
 	{
 		State = Rans16L;
 	}
@@ -27,13 +27,13 @@ struct Rans16Enc
 		return StateToNorm;
 	}
 
-	void inline encode(u16** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
+	inline void encode(u16** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
 		u32 NormState = Rans16Enc::renorm(State, OutP, Freq, ScaleBit);
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
 	}
 
-	void inline flush(u16** OutP)
+	inline void flush(u16** OutP)
 	{
 		u32 EndState = State;
 		u16* Out = *OutP;

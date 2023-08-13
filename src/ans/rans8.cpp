@@ -30,7 +30,7 @@ struct Rans8Enc
 		return StateToNorm;
 	}
 
-	void inline encode(u8** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
+	inline void encode(u8** OutP, u32 CumStart, u32 Freq, u32 ScaleBit)
 	{
 		u32 NormState = Rans8Enc::renorm(State, OutP, Freq, ScaleBit);
 		State = ((NormState / Freq) << ScaleBit) + (NormState % Freq) + CumStart;
@@ -53,14 +53,14 @@ struct Rans8Enc
 		return StateToNorm;
 	}
 
-	void inline encode(u8** OutP, rans_enc_sym32* Sym)
+	inline void encode(u8** OutP, rans_enc_sym32* Sym)
 	{
 		u32 NormState = Rans8Enc::renorm(State, OutP, Sym->Max);
 		u32 q = (((u64)NormState * (u64)Sym->RcpFreq) >> 32) >> Sym->RcpShift;
 		State = NormState + Sym->Bias + q * Sym->CmplFreq;
 	}
 
-	void inline flush(u8** OutP)
+	inline void flush(u8** OutP)
 	{
 		u32 EndState = State;
 		u8* Out = *OutP;
@@ -115,7 +115,7 @@ struct Rans8Dec
 		}
 	}
 
-	void inline decodeAdvance(u8** InP, rans_dec_sym32* Sym, u32 ScaleBit)
+	inline void decodeAdvance(u8** InP, rans_dec_sym32* Sym, u32 ScaleBit)
 	{
 		decodeAdvance(InP, Sym->CumStart, Sym->Freq, ScaleBit);
 	}
