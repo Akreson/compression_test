@@ -178,7 +178,7 @@ struct HuffDefaultBuild
 		}
 	}
 
-	inline u32 countSize(u32* SymFreq)
+	inline u32 countSize(u32* SymFreq) const
 	{
 		u32 Size = 0;
 		for (u32 i = 1; i <= MaxSymbolIndex; i++)
@@ -192,7 +192,7 @@ struct HuffDefaultBuild
 		return Size;
 	}
 
-	void buildCodes(HuffEncoder& Enc)
+	void buildCodes(HuffEncoder& Enc) const
 	{
 		u32 Code = 0;
 		u32 LastLen = 0;
@@ -224,7 +224,7 @@ struct HuffDefaultBuild
 		}
 	}
 private:
-	inline u32 getNodeIndex(huff_node* Nodes, huff_def_build_iter& Iter)
+	inline u32 getNodeIndex(huff_node* Nodes, huff_def_build_iter& Iter) const
 	{
 		u32 Result;
 
@@ -310,7 +310,7 @@ private:
 	// copy of zstd HUF_setMaxHeight
 	// https://fastcompression.blogspot.com/2015/07/huffman-revisited-part-3-depth-limited.html
 	// https://cbloomrants.blogspot.com/2018/04/the-kraft-number-binary-arithmetic-and.html
-	inline b32 limitCodeLengthByRank(huff_node* Nodes, u32 Count, u32 MaxLen)
+	inline b32 limitCodeLengthByRank(huff_node* Nodes, u32 Count, u32 MaxLen) const
 	{
 
 		u32 LastAt = Count - 1;
@@ -419,7 +419,7 @@ private:
 		return (TotalDept <= 0);
 	}
 
-	inline b32 limitCodeLength(huff_node* Nodes, u32 Count, u32 MaxLen)
+	inline b32 limitCodeLength(huff_node* Nodes, u32 Count, u32 MaxLen) const
 	{
 		b32 Result = true;
 
@@ -478,7 +478,7 @@ struct HuffDecoder
 	HuffDecoder() : Table(nullptr) {}
 	HuffDecoder(void* TablePtr) : Table(reinterpret_cast<huff_dec_entry*>(TablePtr)) {}
 
-	inline u8 decode(BitReader& Reader, u32 MaxCodeLen)
+	inline u8 decode(BitReader& Reader, u32 MaxCodeLen) const
 	{
 		u64 Val = Reader.peek(MaxCodeLen);
 		Reader.consume(Table[Val].Len);
@@ -543,7 +543,7 @@ struct HuffDecTableInfo
 		DecTableReqSizeByte = ((u32)1 << MaxCodeLen) * sizeof(huff_dec_entry);
 	}
 
-	inline void assignCodesMSB(HuffDecoder& Dec)
+	inline void assignCodesMSB(HuffDecoder& Dec) const
 	{
 		u16* SetMem = reinterpret_cast<u16*>(Dec.Table);
 		const u8* IterSym = SymBuff;
