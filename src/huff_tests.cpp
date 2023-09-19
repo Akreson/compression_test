@@ -81,7 +81,7 @@ TestHuffDefault1(file_data& InputFile)
 	u8* DecBuff = new u8[InputFile.Size + (DecSymInOneLoop - 1)];
 	u8* EndDecData = DecBuff + InputFile.Size;
 
-	BitReader Reader;
+	BitReaderMSB Reader;
 	HuffDecTableInfo HuffDecInfo;
 
 	AccumTime DecAccum;

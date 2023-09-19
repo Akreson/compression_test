@@ -82,22 +82,33 @@ struct BitWriter
 		}
 	}
 
-	inline void finish()
+	inline u64 finish()
 	{
-		u8 FlushByte = BitBuff << (8 - BitCount);
-		*Stream.Pos = FlushByte;
-		Stream.Pos++;
+		if (BitCount)
+		{
+			u8 FlushByte = BitBuff << (8 - BitCount);
+			*Stream.Pos = FlushByte;
+			Stream.Pos++;
+		}
+
+		return (Stream.Pos - Stream.Start);
+	}
+
+	inline u64 finishReverse()
+	{
+		writeMSB(1, 1);
+		return finish();
 	}
 };
 
-struct BitReader
+struct BitReaderMSB
 {
 	StreamBuff Stream;
 	u32 BitCount;
 	u64 BitBuff;
 
-	BitReader() : BitCount(0), BitBuff(0) {}
-	BitReader(u8* BuffStart, size_t Size) : Stream(BuffStart, Size), BitCount(0), BitBuff(0) {}
+	BitReaderMSB() : BitCount(0), BitBuff(0) {}
+	BitReaderMSB(u8* BuffStart, size_t Size) : Stream(BuffStart, Size), BitCount(0), BitBuff(0) {}
 
 	inline void init(u8* BuffStart, size_t Size)
 	{
@@ -126,6 +137,82 @@ struct BitReader
 	inline void consume(u32 Count)
 	{
 		BitBuff <<= Count;
+		BitCount -= Count;
+	}
+};
+
+struct StreamBuffReverse
+{
+	u8* Start;
+	u8* End;
+	u8* Pos;
+
+	StreamBuffReverse() : Start(nullptr), End(nullptr), Pos(nullptr) {}
+	StreamBuffReverse(u8* Init, size_t Size)
+	{
+		init(Init, Size);
+	}
+
+	inline void init(u8* Init, size_t Size)
+	{
+		Start = Init;
+		End = Init + Size;
+		Pos = End - sizeof(u8);
+	}
+
+	inline u8 read8()
+	{
+		u8 Result = Pos >= Start ? *Pos : 0;
+		return Result;
+	}
+};
+
+struct BitReaderReverseMSB
+{
+	StreamBuffReverse Stream;
+	u32 BitCount;
+	u64 BitBuff;
+
+	BitReaderReverseMSB() : BitCount(0), BitBuff(0) {}
+	BitReaderReverseMSB(u8* BuffStart, size_t Size)
+	{
+		init(BuffStart, Size);
+	}
+
+	inline void init(u8* BuffStart, size_t Size)
+	{
+		Stream.init(BuffStart, Size);
+		BitBuff = BitCount = 0;
+
+		u8 LastByte = *Stream.Pos--;
+		u32 ScanResult = FindLeastSignificantSetBit32(LastByte);
+		u32 Offset = LastByte ? ScanResult + 1 : 0;
+
+		BitCount = 8 - Offset;
+		BitBuff = LastByte >> Offset;
+	}
+
+	inline void refillTo(u32 Count)
+	{
+		while (BitCount < Count)
+		{
+			u64 Byte = static_cast<u64>(Stream.read8());
+			--Stream.Pos;
+
+			BitBuff |= Byte << BitCount;
+			BitCount += 8;
+		}
+	}
+
+	inline u64 peek(u32 Count)
+	{
+		u64 Result = BitBuff & ((1 << Count) - 1);
+		return Result;
+	}
+
+	inline void consume(u32 Count)
+	{
+		BitBuff >>= Count;
 		BitCount -= Count;
 	}
 };

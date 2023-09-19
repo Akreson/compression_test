@@ -23,7 +23,7 @@ CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 	if constexpr (UseShift)
 	{
 		Assert(IsPowerOf2(Prob.scale));
-		Prob.scale = FindMostSignificantSetBit(Prob.scale);
+		Prob.scale = FindMostSignificantSetBit32(Prob.scale);
 	}
 
 	AccumTime Accum;
@@ -77,7 +77,7 @@ DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBu
 	if constexpr (UseShift)
 	{
 		Assert(IsPowerOf2(Prob.scale));
-		ShiftScale = FindMostSignificantSetBit(Prob.scale);
+		ShiftScale = FindMostSignificantSetBit32(Prob.scale);
 	}
 
 	AccumTime Accum;

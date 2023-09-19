@@ -10,6 +10,9 @@
 #include "ac_tests.cpp"
 #include "ans_tests.cpp"
 
+#include <cstdlib>
+#include <ctime>
+
 int
 main(int argc, char** argv)
 {

@@ -153,8 +153,8 @@ struct HuffDefaultBuild
 			LenCount[Nodes[i].Len]++;
 		}
 
-		u32 MaxSymbolBits = FindMostSignificantSetBit(MaxSymbol) + 1;
-		u32 MaxCountBits = FindMostSignificantSetBit(MaxSymbolIndex) + 1;
+		u32 MaxSymbolBits = FindMostSignificantSetBit32(MaxSymbol) + 1;
+		u32 MaxCountBits = FindMostSignificantSetBit32(MaxSymbolIndex) + 1;
 
 		Writer.writeMSB(MaxCountBits, 8);
 		Writer.writeMSB(MaxSymbolBits, 8);
@@ -245,7 +245,7 @@ private:
 		b32 Result = false;
 
 		Assert(SymCount);
-		u32 ScanResult = FindMostSignificantSetBit(SymCount);
+		u32 ScanResult = FindMostSignificantSetBit32(SymCount);
 		u32 MinTableLog = ScanResult + 1;
 
 		if (MaxCodeLen == 0)
@@ -355,7 +355,7 @@ private:
 
 		while (TotalDept > 0)
 		{
-			u32 ScanResult = FindMostSignificantSetBit(TotalDept);
+			u32 ScanResult = FindMostSignificantSetBit32(TotalDept);
 			u32 BitsDeptIndex = ScanResult + 1;
 
 			for (; BitsDeptIndex > 1; BitsDeptIndex--)
@@ -478,7 +478,7 @@ struct HuffDecoder
 	HuffDecoder() : Table(nullptr) {}
 	HuffDecoder(void* TablePtr) : Table(reinterpret_cast<huff_dec_entry*>(TablePtr)) {}
 
-	inline u8 decode(BitReader& Reader, u32 MaxCodeLen) const
+	inline u8 decode(BitReaderMSB& Reader, u32 MaxCodeLen) const
 	{
 		u64 Val = Reader.peek(MaxCodeLen);
 		Reader.consume(Table[Val].Len);
@@ -494,7 +494,7 @@ struct HuffDecTableInfo
 	u8 MaxCodeLen;
 	u32 DecTableReqSizeByte;
 
-	inline void readTable(BitReader& Reader)
+	inline void readTable(BitReaderMSB& Reader)
 	{
 		MinCodeLen = 255;
 		MaxCodeLen = 0;

@@ -106,10 +106,19 @@ MulHi64(u64 a, u64 b)
 }
 
 inline u32
-FindMostSignificantSetBit(u32 Source)
+FindMostSignificantSetBit32(u32 Source)
 {
 	u32 Result;
 	u32 S = _BitScanReverse((unsigned long*)&Result, Source);
+	return Result;
+}
+
+inline u32
+FindLeastSignificantSetBit32(u32 Source)
+{
+	u32 Result;
+	u32 S = _BitScanForward((unsigned long*)&Result, Source);
+
 	return Result;
 }
 
@@ -125,10 +134,16 @@ MulHi64(u64 a, u64 b)
 }
 
 inline u32
-FindMostSignificantSetBit(u32 Source)
+FindMostSignificantSetBit32(u32 Source)
 {
 	u32 Result = 31 - __builtin_clz(Source);
 	return Result;
+}
+
+inline u32
+FindLeastSignificantSetBit32(u32 Source)
+{	
+	#error "Function not implemented"
 }
 
 #endif

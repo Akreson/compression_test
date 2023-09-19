@@ -91,7 +91,7 @@ RansEncSymInit(rans_enc_sym32* Sym, u32 CumStart, u32 Freq, u32 ScaleBit, u32 L,
 		u32 Adder = static_cast<u32>(!IsPowerOf2(Freq));
 
 		Assert(Freq);
-		u32 ScanResult = FindMostSignificantSetBit(Freq);
+		u32 ScanResult = FindMostSignificantSetBit32(Freq);
 		u32 Shift = ScanResult + Adder;
 
 		Sym->RcpFreq = (u32)(((1ull << (Shift + 31)) + Freq - 1) / Freq);
@@ -131,7 +131,7 @@ RansEncSymInit(rans_enc_sym64* Sym, u32 CumStart, u32 Freq, u32 ScaleBit)
 		u32 Adder = static_cast<u32>(!IsPowerOf2(Freq));
 		
 		Assert(Freq);
-		u32 ScanResult = FindMostSignificantSetBit(Freq);
+		u32 ScanResult = FindMostSignificantSetBit32(Freq);
 		u32 Shift = ScanResult + Adder;
 
 		u64 x0 = Freq - 1;
