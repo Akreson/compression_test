@@ -2,10 +2,14 @@
 #include "ans/rans8.cpp"
 #include "ans/rans16.cpp"
 #include "ans/rans32.cpp"
+#include "ans/tans.cpp"
 #include "ans/static_basic_stats.cpp"
 
 static constexpr u32 RANS_PROB_BIT = 11;
 static constexpr u32 RANS_PROB_SCALE = 1 << RANS_PROB_BIT;
+
+static constexpr u32 TANS_PROB_BITS = 11;
+static constexpr u32 TANS_PROB_SCALE = 1 << TANS_PROB_BITS;
 
 void
 TestBasicRans8(file_data& InputFile)
@@ -1126,4 +1130,114 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 	delete[] OutBuff;
 	delete[] DecBuff;
 }
+
+void
+TansSortSymBitReverse(u8* SortedSym, u32 SortCount, u16* NormFreq, u32 AlphSymCount = 256)
+{
+	u32 SymbolCounter = 0;
+	for (u32 Sym = 0; Sym < AlphSymCount; Sym++)
+	{
+		u16 Freq = NormFreq[Sym];
+		for (u32 Count = 0; Count < Freq; Count++)
+		{
+			u32 ReverseCounter = BitReverseSlow(SymbolCounter++, TANS_PROB_BITS);
+			SortedSym[ReverseCounter] = Sym;
+		}
+	}
+
+	Assert(SymbolCounter == SortCount);
+}
+
+void
+TestBasicTans(file_data& InputFile)
+{
+	PRINT_TEST_FUNC();
+
+	u8* OutBuff = new u8[InputFile.Size];
+	u8* DecBuff = new u8[InputFile.Size];
+
+	u32 Freq[256] = {};
+	u16 NormFreq[256] = {};
+
+	CountByte(Freq, InputFile.Data, InputFile.Size);
+	OptimalNormalize(Freq, NormFreq, InputFile.Size, 256, TANS_PROB_SCALE);
+
+	TansEnc::entry* EncEntriesMem = new TansEnc::entry[256];
+	TansDec::entry* DecEntriesMem = new TansDec::entry[TANS_PROB_SCALE];
+	u16* TableMem = new u16[TANS_PROB_SCALE];
+	u8* SortedSym = new u8[TANS_PROB_SCALE];
+
+	BitWriter Writer;
+	TansEnc Encoder;
+	TansDec Decoder;
+
+	Timer Timer;
+
+	AccumTime SymbolSortAccum;
+	AccumTime EncodeInitAccum, EncAccum;
+	AccumTime DecodeInitAccum, DecAccum;
+
+	printf(" tANS encode\n");
+	u64 TotalEncSize = 0;
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		Writer.init(OutBuff, InputFile.Size);
+
+		Timer.start();
+		TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+		Timer.end();
+
+		SymbolSortAccum.update(Timer);
+
+		Timer.start();
+		Encoder.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+		Timer.end();
+
+		EncodeInitAccum.update(Timer);
+
+		Timer.start();
+		for (u64 i = InputFile.Size; i > 0; i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			Encoder.encode(Writer, Symbol);
+		}
+
+		const u32 StateCountLog = TANS_PROB_BITS + 1;
+
+		Writer.writeMSB(Encoder.State, StateCountLog);
+		TotalEncSize = Writer.finishReverse();
+		Timer.end();
+
+		EncAccum.update(Timer);
+
+		BitReaderReverseMSB Reader(OutBuff, TotalEncSize);
+		Reader.refillTo(StateCountLog);
+
+		Timer.start();
+		u64 InitState = Reader.getBits(StateCountLog);
+		Decoder.init(InitState, DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+		Timer.end();
+		DecodeInitAccum.update(Timer);
+
+		u8* DecOut = DecBuff;
+		Timer.start();
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			u8 Sym = Decoder.decode(Reader);
+			Assert(Sym == InputFile.Data[i]);
+			*DecOut++ = Sym;
+			Reader.refillTo(StateCountLog);
+		}
+		Timer.end();
+		DecAccum.update(Timer);
+	}
+
+	SymbolSortAccum.avg(RUNS_COUNT);
+	EncodeInitAccum.avg(RUNS_COUNT);
+
+	printf("tANS symbol sort - %lu clocks, %0.6f ms \n", SymbolSortAccum.Clock, SymbolSortAccum.Time * 1000.0);
+	printf("tANS table build - %lu clocks, %0.6f ms \n", EncodeInitAccum.Clock, EncodeInitAccum.Time * 1000.0);
+	PrintAvgPerSymbolPerfStats(EncAccum, RUNS_COUNT, InputFile.Size);
+	PrintAvgPerSymbolPerfStats(DecAccum, RUNS_COUNT, InputFile.Size);
+	PrintCompressionSize(InputFile.Size, TotalEncSize);
 }

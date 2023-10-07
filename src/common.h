@@ -382,7 +382,8 @@ PrintAvgPerSymbolPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
 	printf("\n");
 }
 
-std::string ToBinary(u64 Val, u32 Len)
+std::string
+ToBinary(u64 Val, u32 Len)
 {
 	std::string Result;
 
@@ -414,7 +415,7 @@ CalcCumFreq(T* Freq, T* CumFreq, u32 SymCount)
 }
 
 template<typename T> f64
-Entropy(const T * Freq, u32 AlphSize)
+Entropy(const T* Freq, u32 AlphSize)
 {
 	f64 H = 0;
 	u64 Sum = 0;
