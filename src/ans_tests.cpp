@@ -831,6 +831,8 @@ DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq,
 		DecBuff[ByteIndex++] = Symbol;
 		Decoder.decodeAdvance(&In, CumFreq[Symbol], Freq[Symbol], ProbBit);
 	}
+
+	delete[] Cum2Sym;
 }
 
 void
@@ -1116,4 +1118,12 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 			Decoder.init(&In);
 		}
 	}
+
+	delete[] CDF;
+	delete[] InitCDF;
+	delete MixCDF;
+
+	delete[] OutBuff;
+	delete[] DecBuff;
+}
 }
