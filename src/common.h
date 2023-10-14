@@ -53,47 +53,6 @@ struct array2d
 	T E[Dim0][Dim1];
 };
 
-struct AccumTime
-{
-	u64 Clock;
-	f64 Time;
-
-	u64 MinClock;
-	f64 MinTime;
-
-	u64 MaxClock;
-	f64 MaxTime;
-
-	AccumTime()
-	{
-		reset();
-	};
-
-	inline void update(u64 StepClock, f64 StepTime)
-	{
-		Clock += StepClock;
-		Time += StepTime;
-
-		MinClock = MinClock > StepClock ? StepClock : MinClock;
-		MinTime = MinTime > StepTime ? StepTime : MinTime;
-
-		MaxClock = MaxClock > StepClock ? MaxClock : StepClock;
-		MaxTime = MaxTime > StepTime ? MaxTime : StepTime;
-	}
-
-	inline void reset()
-	{
-		Clock = 0;
-		Time = 0.0;
-
-		MinClock = MaxUInt64;
-		MinTime = MaxF64;
-
-		MaxClock = 0;
-		MaxTime = 0;
-	}
-};
-
 #if _MSC_VER
 
 #define ALIGN(type, name, N) __declspec(align(N)) type name
@@ -180,6 +139,87 @@ timer()
 }
 
 #endif
+
+struct Timer
+{
+	f64 StartTime;
+	u64 StartClock;
+
+	f64 Time;
+	u64 Clock;
+
+	Timer()
+	{
+		reset();
+	}
+
+	inline void start()
+	{
+		StartTime = timer();
+		StartClock = __rdtsc();
+	}
+
+	inline void end()
+	{
+		Time = timer() - StartTime;
+		Clock = __rdtsc() - StartClock;
+	}
+
+	inline void reset()
+	{
+		StartClock = Clock = 0;
+		StartTime = Time = 0.0;
+	}
+};
+
+struct AccumTime
+{
+	u64 Clock;
+	f64 Time;
+
+	u64 MinClock;
+	f64 MinTime;
+
+	u64 MaxClock;
+	f64 MaxTime;
+
+	AccumTime()
+	{
+		reset();
+	};
+
+	inline void update(u64 StepClock, f64 StepTime)
+	{
+		Clock += StepClock;
+		Time += StepTime;
+
+		MinClock = MinClock > StepClock ? StepClock : MinClock;
+		MinTime = MinTime > StepTime ? StepTime : MinTime;
+
+		MaxClock = MaxClock > StepClock ? MaxClock : StepClock;
+		MaxTime = MaxTime > StepTime ? MaxTime : StepTime;
+	}
+
+	inline void update(Timer& Timer)
+	{
+		update(Timer.Clock, Timer.Time);
+	}
+
+	inline void avg(size_t Count)
+	{
+		Clock /= Count;
+		Time /= (f64)Count;
+	}
+
+	inline void reset()
+	{
+		Clock = MaxClock = 0;
+		Time = MaxTime = 0.0;
+
+		MinClock = MaxUInt64;
+		MinTime = MaxF64;
+	}
+};
 
 inline b32
 IsPowerOf2(u32 Value)
@@ -330,8 +370,7 @@ PrintSymbolEncPerfStats(u64 Clocks, f64 Time, u64 DataSize)
 inline void
 PrintAvgPerSymbolPerfStats(AccumTime Accum, u32 RunsCount, u64 DataSize)
 {
-	Accum.Clock /= RunsCount;
-	Accum.Time /= (f64)RunsCount;
+	Accum.avg(RunsCount);
 	printf(" avg of %d runs ", RunsCount);
 	PrintSymbolEncPerfStats(Accum.Clock, Accum.Time, DataSize);
 #if 0
@@ -393,6 +432,21 @@ Entropy(const T * Freq, u32 AlphSize)
 	f64 SumFP = static_cast<f64>(Sum);
 	H = std::log2(SumFP) + H / SumFP;
 	return H;
+}
+
+template<typename T> T
+BitReverseSlow(T Val, u32 Bits)
+{
+	T Result = 0;
+
+	while (Bits--)
+	{
+		Result <<= 1;
+		Result |= (Val & 1);
+		Val >>= 1;
+	}
+
+	return Result;
 }
 
 #endif
