@@ -215,4 +215,12 @@ struct BitReaderReverseMSB
 		BitBuff >>= Count;
 		BitCount -= Count;
 	}
+
+	inline u64 getBits(u32 Count)
+	{
+		u64 Result = peek(Count);
+		consume(Count);
+		refillTo(Count);
+		return Result;
+	}
 };
