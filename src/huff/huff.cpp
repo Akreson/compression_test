@@ -90,12 +90,11 @@ struct HuffDefaultBuild
 
 	HuffDefaultBuild() = default;
 
-	b32 buildTable(HuffEncoder& Enc, u32* SymFreq, u32 MaxCodeLen = 0, u32 AlphSymbolCount = 256)
+	b32 buildTable(u32* SymFreq, u32 MaxCodeLen = 0, u32 AlphSymbolCount = 256)
 	{
 		Assert(MaxCodeLen <= HUFF_MAX_CODELEN)
 		Assert(AlphSymbolCount <= 256);
 
-		MemSet<u8>((u8*)Enc.Table, sizeof(Enc.Table), 0);
 		MemSet<u8>((u8*)Nodes, sizeof(Nodes), 0);
 		Nodes[0].Freq = MaxUInt32;
 
@@ -194,6 +193,8 @@ struct HuffDefaultBuild
 
 	void buildCodes(HuffEncoder& Enc) const
 	{
+		MemSet<u8>((u8*)Enc.Table, sizeof(Enc.Table), 0);
+
 		u32 Code = 0;
 		u32 LastLen = 0;
 

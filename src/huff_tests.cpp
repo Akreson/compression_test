@@ -26,7 +26,7 @@ TestHuffDefault1(file_data& InputFile)
 		f64 StartTime = timer();
 		u64 StartClock = __rdtsc();
 
-		b32 Success = HuffBuild.buildTable(HEnc, ByteCount, HuffTableLog);
+		b32 Success = HuffBuild.buildTable(ByteCount, HuffTableLog);
 		Assert(Success);
 
 		u64 Clocks = __rdtsc() - StartClock;
