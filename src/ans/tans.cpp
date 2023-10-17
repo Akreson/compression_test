@@ -3,10 +3,8 @@ struct TansEnc
 {
 	struct entry
 	{
-		s16 Offset;
-		s16 MoreBitsThreshold;
-		s16 MaxState;
-		u8 MinBits;
+		s32 deltaState;
+		u32 deltaNumBits;
 	};
 
 	TansEnc::entry* Entries;
@@ -32,37 +30,40 @@ struct TansEnc
 		Entries = EntriesMem;
 		StateTable = TableMem;
 
-		u32 CumFreq = 0;
+		u16 NextState[256] = {};
+		for (u32 i = 0; i < AlphSymCount; i++)
+		{
+			NextState[i] = NormFreq[i];
+		}
+
+		u16 CumFreq[256] = {};
+		for (u32 i = 1; i < AlphSymCount; i++)
+		{
+			CumFreq[i] = CumFreq[i - 1] + NormFreq[i - 1];
+		}
+
+		for (u32 i = 0; i < L; i++)
+		{
+			u32 ToState = L + i;
+
+			u8 Sym = SortedSym[i];
+			u16 FromState = NextState[Sym]++;
+			u16 SymNormFreq = NormFreq[Sym];
+
+			StateTable[CumFreq[Sym] + FromState - SymNormFreq] = ToState;
+		}
+
+		u32 Total = 0;
 		for (u32 i = 0; i < AlphSymCount; i++)
 		{
 			u16 Freq = NormFreq[i];
 			if (!Freq) continue;
 
-			Entries[i].MaxState = Freq;
-			Entries[i].Offset = CumFreq - Freq;
-
-			u32 MaxFMState = (2*Freq) - 1;
-			u8 NumBits = TableLog - FindMostSignificantSetBit32(MaxFMState);
-
-			Assert(((L >> NumBits) <= MaxFMState));
-			Assert((L >> NumBits) >= Freq);
-
-			Entries[i].MinBits = NumBits;
-			Entries[i].MoreBitsThreshold = (MaxFMState + 1) << NumBits;
-
-			Assert(((2*L - 1) >> (NumBits + 1)) <= MaxFMState);
-			CumFreq += Freq;
-		}
-		
-		Assert(CumFreq == L);
-
-		for (u32 i = 0; i < L; i++)
-		{
-			u8 Sym = SortedSym[i];
-			u32 ToState = L + i;
-			u32 FromState = Entries[Sym].MaxState++;
-			
-			StateTable[FromState + Entries[Sym].Offset] = ToState;
+			u8 NumBits = TableLog - FindMostSignificantSetBit32(Freq - 1);
+			u16 MinStatePlus = Freq << NumBits;
+			Entries[i].deltaNumBits = (NumBits << 16) - MinStatePlus;
+			Entries[i].deltaState = Total - Freq;
+			Total += Freq;
 		}
 	}
 
@@ -70,13 +71,10 @@ struct TansEnc
 	{
 		const entry& Entry = Entries[Sym];
 
-		u8 NumBits = Entry.MinBits;
-		if (State >= Entry.MoreBitsThreshold) NumBits++;
-
+		u8 NumBits = (State + Entry.deltaNumBits) >> 16;
 		Writer.writeMSB(State & ((1 << NumBits) - 1), NumBits);
-		State >>= NumBits;
 
-		State = StateTable[State + Entry.Offset];
+		State = StateTable[(State >> NumBits) + Entry.deltaState];
 	}
 };
 
@@ -114,25 +112,23 @@ struct TansDec
 			u8 Sym = SortedSym[i];
 			u32 FromState = NextState[Sym]++;
 
-			Table[i].Bits = TableLog - FindMostSignificantSetBit32(FromState);
-			Table[i].NextState = FromState;
 			Table[i].Sym = Sym;
+			Table[i].Bits = TableLog - FindMostSignificantSetBit32(FromState);
+			Table[i].NextState = (FromState << Table[i].Bits) - L;
 		}
-
 	}
 
 	u8 decode(BitReaderReverseMSB& Reader)
 	{
-		u16 CurrState = State;
-		Assert((CurrState >= L) && (L < 2*CurrState));
+		u64 CurrState = State;
 
-		const entry& Entry = Table[CurrState - L];
+		const entry& Entry = Table[CurrState];
 		CurrState = Entry.NextState;
 
-		CurrState <<= Entry.Bits;
-		CurrState |= Reader.peek(Entry.Bits);
+		u64 ReadBits = Reader.peek(Entry.Bits);
 		Reader.consume(Entry.Bits);
 
+		CurrState += ReadBits;
 		State = CurrState;
 
 		return Entry.Sym;

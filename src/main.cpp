@@ -21,7 +21,7 @@ main(int argc, char** argv)
 		printf("file name missed\n");
 		exit(0);
 	}
-
+	
 	std::vector<file_data> InputArr;
 	ReadTestFiles(InputArr, argv[1]);
 
