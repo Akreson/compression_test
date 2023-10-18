@@ -26,11 +26,11 @@ CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 		Prob.scale = FindMostSignificantSetBit32(Prob.scale);
 	}
 
+	Timer Timer;
 	AccumTime Accum;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 StartTime = timer();
-		u64 StartClock = __rdtsc();
+		Timer.start();
 
 		for (u32 i = 0; i < InputFile.Size; ++i)
 		{
@@ -52,9 +52,8 @@ CompressStaticACFile(u16* ByteCumFreq, file_data& InputFile, ByteVec& OutBuffer)
 
 		Encoder.flush();
 
-		u64 Clocks = __rdtsc() - StartClock;
-		f64 Time = timer() - StartTime;
-		Accum.update(Clocks, Time);
+		Timer.end();
+		Accum.update(Timer);
 
 		if ((Run + 1) < RUNS_COUNT)
 		{
@@ -80,11 +79,11 @@ DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBu
 		ShiftScale = FindMostSignificantSetBit32(Prob.scale);
 	}
 
+	Timer Timer;
 	AccumTime Accum;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 StartTime = timer();
-		u64 StartClock = __rdtsc();
+		Timer.start();
 
 		for (u64 ByteIndex = 0; ByteIndex < OutputFile.Size; ByteIndex++)
 		{
@@ -98,7 +97,7 @@ DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBu
 				DecodedFreq = Decoder.getCurrFreq(Prob.scale);
 			}
 
-			u32 DecodedSymbol;
+			u32 DecodedSymbol = 0;
 			for (u32 i = 0; i < 256; ++i)
 			{
 				if (DecodedFreq < ByteCumFreq[i + 1])
@@ -117,9 +116,8 @@ DecompressStaticACFile(u16* ByteCumFreq, file_data& OutputFile, ByteVec& InputBu
 			OutputFile.Data[ByteIndex] = DecodedSymbol;
 		}
 
-		u64 EncClocks = __rdtsc() - StartClock;
-		f64 EncTime = timer() - StartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 
 		Decoder.reset();
 	}

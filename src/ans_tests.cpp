@@ -15,6 +15,7 @@ void
 TestBasicRans8(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+	Timer Timer;
 
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
@@ -39,8 +40,7 @@ TestBasicRans8(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		Rans8Enc Encoder;
 		Encoder.init();
@@ -54,9 +54,8 @@ TestBasicRans8(file_data& InputFile)
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -69,8 +68,7 @@ TestBasicRans8(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u8* In = DecodeBegin;
 
@@ -87,9 +85,8 @@ TestBasicRans8(file_data& InputFile)
 			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -103,6 +100,7 @@ void
 TestBasicRans32(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
@@ -127,8 +125,7 @@ TestBasicRans32(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		Rans32Enc Encoder;
 		Encoder.init();
@@ -142,9 +139,8 @@ TestBasicRans32(file_data& InputFile)
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -157,8 +153,7 @@ TestBasicRans32(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u32* In = DecodeBegin;
 		Rans32Dec Decoder;
@@ -174,9 +169,8 @@ TestBasicRans32(file_data& InputFile)
 			Decoder.decodeAdvance(&In, Stats.CumFreq[Symbol], Stats.Freq[Symbol], RANS_PROB_BIT);
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -190,6 +184,7 @@ void
 TestFastEncodeRans8(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+	Timer Timer;
 
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
@@ -223,8 +218,7 @@ TestFastEncodeRans8(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		Rans8Enc Encoder;
 		Encoder.init();
@@ -238,9 +232,8 @@ TestFastEncodeRans8(file_data& InputFile)
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -253,8 +246,7 @@ TestFastEncodeRans8(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u8* In = DecodeBegin;
 		Rans8Dec Decoder;
@@ -271,9 +263,8 @@ TestFastEncodeRans8(file_data& InputFile)
 			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], RANS_PROB_BIT);
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -287,6 +278,7 @@ void
 TestFastEncodeRans32(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+	Timer Timer;
 
 	u64 BuffSize = InputFile.Size;
 	u8* OutBuff = new u8[BuffSize];
@@ -320,8 +312,7 @@ TestFastEncodeRans32(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		Rans32Enc Encoder;
 		Encoder.init();
@@ -335,9 +326,8 @@ TestFastEncodeRans32(file_data& InputFile)
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -350,8 +340,7 @@ TestFastEncodeRans32(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u32* In = DecodeBegin;
 
@@ -369,9 +358,8 @@ TestFastEncodeRans32(file_data& InputFile)
 			Decoder.decodeAdvance(&In, &DecSymArr[Symbol], RANS_PROB_BIT);
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -385,6 +373,7 @@ void
 TestTableDecodeRans16(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
@@ -407,8 +396,7 @@ TestTableDecodeRans16(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		Rans16Enc Encoder;
 		Encoder.init();
@@ -422,9 +410,8 @@ TestTableDecodeRans16(file_data& InputFile)
 		Encoder.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -437,8 +424,7 @@ TestTableDecodeRans16(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u16* In = DecodeBegin;
 
@@ -455,11 +441,8 @@ TestTableDecodeRans16(file_data& InputFile)
 			Decoder.decodeRenorm(&In);
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.Clock += DecClocks;
-		Accum.Time += DecTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -473,6 +456,7 @@ void
 TestTableInterleavedRans16(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
@@ -495,8 +479,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
 
@@ -521,9 +504,8 @@ TestTableInterleavedRans16(file_data& InputFile)
 		Enc0.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -536,8 +518,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u16* In = DecodeBegin;
 
@@ -566,9 +547,8 @@ TestTableInterleavedRans16(file_data& InputFile)
 			InputFile.Data[InputFile.Size - 1] = Symbol;
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -582,6 +562,8 @@ void
 TestTableInterleavedRans32(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+
+	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
 	u8* OutBuff = new u8[BuffSize];
@@ -604,8 +586,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
 
@@ -630,9 +611,8 @@ TestTableInterleavedRans32(file_data& InputFile)
 		Enc0.flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -645,8 +625,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u32* In = DecodeBegin;
 
@@ -675,9 +654,8 @@ TestTableInterleavedRans32(file_data& InputFile)
 			InputFile.Data[InputFile.Size - 1] = Symbol;
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -693,6 +671,8 @@ void
 TestSIMDDecodeRans16(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
+
+	Timer Timer;
 
 	// align buffer size
 	u64 BuffSize = AlignSizeForward(InputFile.Size, 16);
@@ -716,8 +696,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 	printf(" rANS encode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		Rans16Enc Enc[8];
 		for (u32 i = 0; i < 8; i++) Enc[i].init();
@@ -733,9 +712,8 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		for (u32 i = 8; i > 0; i--) Enc[i - 1].flush(&Out);
 		DecodeBegin = Out;
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		Accum.update(EncClocks, EncTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(EncClocks, EncTime, InputFile.Size);
 	}
 
@@ -748,8 +726,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 	printf(" rANS decode\n");
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 DecStartTime = timer();
-		u64 DecStartClock = __rdtsc();
+		Timer.start();
 
 		u16* In = DecodeBegin;
 
@@ -779,9 +756,8 @@ TestSIMDDecodeRans16(file_data& InputFile)
 			DecBuff[i] = Symbol;
 		}
 
-		u64 DecClocks = __rdtsc() - DecStartClock;
-		f64 DecTime = timer() - DecStartTime;
-		Accum.update(DecClocks, DecTime);
+		Timer.end();
+		Accum.update(Timer);
 		//PrintSymbolEncPerfStats(DecClocks, DecTime, InputFile.Size);
 	}
 
@@ -1177,7 +1153,6 @@ TestBasicTans(file_data& InputFile)
 	AccumTime EncodeInitAccum, EncAccum;
 	AccumTime DecodeInitAccum, DecAccum;
 
-	printf(" tANS encode\n");
 	u64 TotalEncSize = 0;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
@@ -1235,9 +1210,12 @@ TestBasicTans(file_data& InputFile)
 	SymbolSortAccum.avg(RUNS_COUNT);
 	EncodeInitAccum.avg(RUNS_COUNT);
 
-	printf("tANS symbol sort - %lu clocks, %0.6f ms \n", SymbolSortAccum.Clock, SymbolSortAccum.Time * 1000.0);
-	printf("tANS table build - %lu clocks, %0.6f ms \n", EncodeInitAccum.Clock, EncodeInitAccum.Time * 1000.0);
+	printf(" tANS symbol sort - %lu clocks, %0.6f ms \n", SymbolSortAccum.Clock, SymbolSortAccum.Time * 1000.0);
+	printf(" tANS table build - %lu clocks, %0.6f ms \n\n", EncodeInitAccum.Clock, EncodeInitAccum.Time * 1000.0);
+
+	printf(" tANS encode\n");
 	PrintAvgPerSymbolPerfStats(EncAccum, RUNS_COUNT, InputFile.Size);
+	printf(" tANS decode\n");
 	PrintAvgPerSymbolPerfStats(DecAccum, RUNS_COUNT, InputFile.Size);
 	PrintCompressionSize(InputFile.Size, TotalEncSize);
 }

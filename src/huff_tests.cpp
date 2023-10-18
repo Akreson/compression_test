@@ -20,23 +20,22 @@ TestHuffDefault1(file_data& InputFile)
 	HuffEncoder HEnc;
 	HuffDefaultBuild HuffBuild;
 
+	Timer Timer;
+
 	AccumTime BuildAccum;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		f64 StartTime = timer();
-		u64 StartClock = __rdtsc();
+		Timer.start();
 
 		b32 Success = HuffBuild.buildTable(ByteCount, HuffTableLog);
 		Assert(Success);
 
-		u64 Clocks = __rdtsc() - StartClock;
-		f64 Time = timer() - StartTime;
-		BuildAccum.update(Clocks, Time);
+		Timer.end();
+		BuildAccum.update(Timer);
 	}
 
-	BuildAccum.Clock /= RUNS_COUNT;
-	BuildAccum.Time /= RUNS_COUNT;
-	printf("Table build - %lu clocks, %0.6f ms \n", BuildAccum.MaxClock, BuildAccum.MaxTime *1000.0);
+	BuildAccum.avg(RUNS_COUNT);
+	printf("Table build - %lu clocks, %0.6f ms \n", BuildAccum.Clock, BuildAccum.Time * 1000.0);
 
 	HuffBuild.buildCodes(HEnc);
 	
@@ -50,8 +49,7 @@ TestHuffDefault1(file_data& InputFile)
 		Writer.init(EncBuff, InputFile.Size);
 		HuffBuild.writeTable(Writer);
 
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		for (u32 i = 0; i < InputFile.Size; ++i)
 		{
@@ -62,9 +60,8 @@ TestHuffDefault1(file_data& InputFile)
 
 		Writer.finish();
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		EncAccum.update(EncClocks, EncTime);
+		Timer.end();
+		EncAccum.update(Timer);
 	}
 	Assert(Writer.Stream.Pos <= Writer.Stream.End);
 
@@ -100,8 +97,7 @@ TestHuffDefault1(file_data& InputFile)
 
 		u32 MaxCodeLen = HuffDecInfo.MaxCodeLen;
 
-		f64 EncStartTime = timer();
-		u64 EncStartClock = __rdtsc();
+		Timer.start();
 
 		while (DecData < EndDecData)
 		{
@@ -118,9 +114,8 @@ TestHuffDefault1(file_data& InputFile)
 #endif
 		}
 
-		u64 EncClocks = __rdtsc() - EncStartClock;
-		f64 EncTime = timer() - EncStartTime;
-		DecAccum.update(EncClocks, EncTime);
+		Timer.end();
+		DecAccum.update(Timer);
 		delete[] DecTableMem;
 	}
 
