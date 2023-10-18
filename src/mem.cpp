@@ -82,6 +82,11 @@ struct BitWriter
 		}
 	}
 
+	inline void writeMaskMSB(u32 Val, u32 Len)
+	{
+		writeMSB(Val & ((1 << Len) - 1), Len);
+	}
+
 	inline u64 finish()
 	{
 		if (BitCount)

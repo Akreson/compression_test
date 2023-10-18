@@ -72,7 +72,7 @@ struct TansEnc
 		const entry& Entry = Entries[Sym];
 
 		u8 NumBits = (State + Entry.deltaNumBits) >> 16;
-		Writer.writeMSB(State & ((1 << NumBits) - 1), NumBits);
+		Writer.writeMaskMSB(State, NumBits);
 
 		State = StateTable[(State >> NumBits) + Entry.deltaState];
 	}

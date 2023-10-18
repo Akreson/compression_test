@@ -1204,7 +1204,7 @@ TestBasicTans(file_data& InputFile)
 
 		const u32 StateCountLog = TANS_PROB_BITS;
 
-		Writer.writeMSB(Encoder.State & ((1 << StateCountLog) - 1), StateCountLog);
+		Writer.writeMaskMSB(Encoder.State, StateCountLog);
 		TotalEncSize = Writer.finishReverse();
 		Timer.end();
 
