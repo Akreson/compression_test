@@ -1223,3 +1223,133 @@ TestBasicTans(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(DecAccum, RUNS_COUNT, InputFile.Size);
 	PrintCompressionSize(InputFile.Size, TotalEncSize);
 }
+
+void
+TestInterleavedTans(file_data& InputFile)
+{
+	PRINT_TEST_FUNC();
+
+	u8* OutBuff = new u8[InputFile.Size];
+	u8* DecBuff = new u8[InputFile.Size];
+
+	u32 Freq[256] = {};
+	u16 NormFreq[256] = {};
+
+	CountByte(Freq, InputFile.Data, InputFile.Size);
+	OptimalNormalize(Freq, NormFreq, InputFile.Size, 256, TANS_PROB_SCALE);
+
+	TansEncTable::entry* EncEntriesMem = new TansEncTable::entry[256];
+	TansDecTable::entry* DecEntriesMem = new TansDecTable::entry[TANS_PROB_SCALE];
+	u16* TableMem = new u16[TANS_PROB_SCALE];
+	u8* SortedSym = new u8[TANS_PROB_SCALE];
+
+	BitWriter Writer;
+
+	TansEncTable EncTable;
+	TansDecTable DecTable;
+
+	TansState State1;
+	TansState State2;
+
+	Timer Timer;
+	AccumTime SymbolSortAccum;
+	AccumTime EncodeInitAccum, EncAccum;
+	AccumTime DecodeInitAccum, DecAccum;
+
+	u64 TotalEncSize = 0;
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		Writer.init(OutBuff, InputFile.Size);
+
+		Timer.start();
+		TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+		Timer.end();
+
+		SymbolSortAccum.update(Timer);
+
+		Timer.start();
+		EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+		State1.State = EncTable.L;
+		State2.State = EncTable.L;
+		Timer.end();
+
+		EncodeInitAccum.update(Timer);
+
+		Timer.start();
+		u64 i = InputFile.Size;
+		for (; i > (InputFile.Size - (InputFile.Size % 4)); i--)
+		{
+			u8 Symbol = InputFile.Data[i - 1];
+			State1.encode(Writer, EncTable, Symbol);
+		}
+
+		for (; i > 0; i -= 4)
+		{
+			State1.encode(Writer, EncTable, InputFile.Data[i - 1]);
+			State2.encode(Writer, EncTable, InputFile.Data[i - 2]);
+			State1.encode(Writer, EncTable, InputFile.Data[i - 3]);
+			State2.encode(Writer, EncTable, InputFile.Data[i - 4]);
+		}
+
+		Writer.writeMaskMSB(State1.State, EncTable.StateBits);
+		Writer.writeMaskMSB(State2.State, EncTable.StateBits);
+		TotalEncSize = Writer.finishReverse();
+
+		Timer.end();
+		EncAccum.update(Timer);
+
+		Timer.start();
+		BitReaderReverseMSB Reader(OutBuff, TotalEncSize);
+		DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+
+		Reader.refillTo(DecTable.StateBits);
+		State2.State = Reader.getBits(DecTable.StateBits);
+		State1.State = Reader.getBits(DecTable.StateBits);
+
+		Timer.end();
+		DecodeInitAccum.update(Timer);
+
+		u8* DecOut = DecBuff;
+		Timer.start();
+		Reader.refillTo(DecTable.StateBits * 4);
+
+		for (u64 i = 0; i < (InputFile.Size / 4); i++)
+		{
+			*DecOut++ = State2.decode(Reader, DecTable);
+			//u8 DecSym = *(DecOut - 1);
+			//Assert((*(DecOut - 1)) == InputFile.Data[i]);
+			*DecOut++ = State1.decode(Reader, DecTable);
+			//Assert((*(--DecOut)) == InputFile.Data[i + 1]);
+			*DecOut++ = State2.decode(Reader, DecTable);
+			//Assert((*(--DecOut)) == InputFile.Data[i + 2]);
+			*DecOut++ = State1.decode(Reader, DecTable);
+			//Assert((*(--DecOut)) == InputFile.Data[i + 3]);
+			Reader.refillTo(DecTable.StateBits * 4);
+		}
+
+		for (u64 i = 0; i < (InputFile.Size % 4); i++)
+		{
+			*DecOut++ = State1.decode(Reader, DecTable);
+			Reader.refillTo(DecTable.StateBits);
+		}
+		Timer.end();
+		DecAccum.update(Timer);
+
+		for (u64 i = 0; i < InputFile.Size; i++)
+		{
+			Assert(DecBuff[i] == InputFile.Data[i]);
+		}
+	}
+
+	SymbolSortAccum.avg(RUNS_COUNT);
+	EncodeInitAccum.avg(RUNS_COUNT);
+
+	printf(" tANS symbol sort - %lu clocks, %0.6f ms \n", SymbolSortAccum.Clock, SymbolSortAccum.Time * 1000.0);
+	printf(" tANS table build - %lu clocks, %0.6f ms \n\n", EncodeInitAccum.Clock, EncodeInitAccum.Time * 1000.0);
+
+	printf(" tANS encode\n");
+	PrintAvgPerSymbolPerfStats(EncAccum, RUNS_COUNT, InputFile.Size);
+	printf(" tANS decode\n");
+	PrintAvgPerSymbolPerfStats(DecAccum, RUNS_COUNT, InputFile.Size);
+	PrintCompressionSize(InputFile.Size, TotalEncSize);
+}
