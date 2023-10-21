@@ -1138,17 +1138,19 @@ TestBasicTans(file_data& InputFile)
 	CountByte(Freq, InputFile.Data, InputFile.Size);
 	OptimalNormalize(Freq, NormFreq, InputFile.Size, 256, TANS_PROB_SCALE);
 
-	TansEnc::entry* EncEntriesMem = new TansEnc::entry[256];
-	TansDec::entry* DecEntriesMem = new TansDec::entry[TANS_PROB_SCALE];
+	TansEncTable::entry* EncEntriesMem = new TansEncTable::entry[256];
+	TansDecTable::entry* DecEntriesMem = new TansDecTable::entry[TANS_PROB_SCALE];
 	u16* TableMem = new u16[TANS_PROB_SCALE];
 	u8* SortedSym = new u8[TANS_PROB_SCALE];
 
 	BitWriter Writer;
-	TansEnc Encoder;
-	TansDec Decoder;
+	
+	TansEncTable EncTable;
+	TansDecTable DecTable;
+
+	TansState State;
 
 	Timer Timer;
-
 	AccumTime SymbolSortAccum;
 	AccumTime EncodeInitAccum, EncAccum;
 	AccumTime DecodeInitAccum, DecAccum;
@@ -1165,43 +1167,45 @@ TestBasicTans(file_data& InputFile)
 		SymbolSortAccum.update(Timer);
 
 		Timer.start();
-		Encoder.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+		EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+		State.State = EncTable.L;
 		Timer.end();
 
 		EncodeInitAccum.update(Timer);
 
 		Timer.start();
-		for (u64 i = InputFile.Size; i > 0; i--)
+		for (u64 i = InputFile.Size; i > 0; --i)
 		{
-			u8 Symbol = InputFile.Data[i - 1];
-			Encoder.encode(Writer, Symbol);
+			State.encode(Writer, EncTable, InputFile.Data[i - 1]);
+			//printf("%lu\n", State.State);
 		}
 
-		const u32 StateCountLog = TANS_PROB_BITS;
-
-		Writer.writeMaskMSB(Encoder.State, StateCountLog);
+		Writer.writeMaskMSB(State.State, EncTable.StateBits);
 		TotalEncSize = Writer.finishReverse();
+		
 		Timer.end();
-
 		EncAccum.update(Timer);
 
-		BitReaderReverseMSB Reader(OutBuff, TotalEncSize);
-		Reader.refillTo(StateCountLog);
-
 		Timer.start();
-		u64 InitState = Reader.getBits(StateCountLog);
-		Decoder.init(InitState, DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+		BitReaderReverseMSB Reader(OutBuff, TotalEncSize);
+		DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+
+		Reader.refillTo(DecTable.StateBits);
+		State.State = Reader.getBits(DecTable.StateBits);
+
 		Timer.end();
 		DecodeInitAccum.update(Timer);
 
 		u8* DecOut = DecBuff;
 		Timer.start();
+
+		Reader.refillTo(DecTable.StateBits);
 		for (u64 i = 0; i < InputFile.Size; i++)
 		{
-			u8 Sym = Decoder.decode(Reader);
+			u8 Sym = State.decode(Reader, DecTable);
 			Assert(Sym == InputFile.Data[i]);
 			*DecOut++ = Sym;
-			Reader.refillTo(StateCountLog);
+			Reader.refillTo(DecTable.StateBits);
 		}
 		Timer.end();
 		DecAccum.update(Timer);

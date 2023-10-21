@@ -1,5 +1,4 @@
-
-struct TansEnc
+struct TansEncTable
 {
 	struct entry
 	{
@@ -7,28 +6,21 @@ struct TansEnc
 		u32 deltaNumBits;
 	};
 
-	TansEnc::entry* Entries;
-	u16* StateTable;
-	u64 State;
+	TansEncTable::entry* Entries;
+	u16* States;
+	u32 StateBits;
+	u32 L;
 
-#if _DEBUG
-	u64 MaxL;
-#endif
+	TansEncTable() = default;
 
-	TansEnc() = default;
-
-	void init(TansEnc::entry* EntriesMem, u32 TableLog, u16* TableMem, const u8* SortedSym, const u16* NormFreq, u32 AlphSymCount = 256)
+	void init(TansEncTable::entry* EntriesMem, u32 TableLog, u16* TableMem, const u8* SortedSym, const u16* NormFreq, u32 AlphSymCount = 256)
 	{
 		Assert(TableLog <= 14);
-		u32 L = 1 << TableLog;
-		State = L;
-
-#if _DEBUG
-		MaxL = L << 1;
-#endif
+		StateBits = TableLog;
+		L = 1 << TableLog;
 
 		Entries = EntriesMem;
-		StateTable = TableMem;
+		States = TableMem;
 
 		u16 NextState[256] = {};
 		for (u32 i = 0; i < AlphSymCount; i++)
@@ -50,7 +42,7 @@ struct TansEnc
 			u16 FromState = NextState[Sym]++;
 			u16 SymNormFreq = NormFreq[Sym];
 
-			StateTable[CumFreq[Sym] + FromState - SymNormFreq] = ToState;
+			States[CumFreq[Sym] + FromState - SymNormFreq] = ToState;
 		}
 
 		u32 Total = 0;
@@ -66,19 +58,9 @@ struct TansEnc
 			Total += Freq;
 		}
 	}
-
-	void encode(BitWriter& Writer, u8 Sym)
-	{
-		const entry& Entry = Entries[Sym];
-
-		u8 NumBits = (State + Entry.deltaNumBits) >> 16;
-		Writer.writeMaskMSB(State, NumBits);
-
-		State = StateTable[(State >> NumBits) + Entry.deltaState];
-	}
 };
 
-struct TansDec
+struct TansDecTable
 {
 	struct entry
 	{
@@ -87,19 +69,20 @@ struct TansDec
 		u8 Sym;
 	};
 
-	entry* Table;
-	u64 State;
-	u16 L;
+	entry* Entry;
+	u32 StateBits;
+	u32 L;
 
-	TansDec() = default;
+	TansDecTable() = default;
 
-	void init(u64 InitState, TansDec::entry* EntriesMem, u32 TableLog, const u8* SortedSym, const u16* NormFreq, u32 AlphSymCount = 256)
+	void init(TansDecTable::entry* EntriesMem, u32 TableLog, const u8* SortedSym, const u16* NormFreq, u32 AlphSymCount = 256)
 	{
 		Assert(TableLog <= 14);
-		
+
+		StateBits = TableLog;
 		L = 1 << TableLog;
-		Table = EntriesMem;
-		State = InitState;
+
+		Entry = EntriesMem;
 
 		u16 NextState[256];
 		for (u32 i = 0; i < AlphSymCount; i++)
@@ -112,17 +95,32 @@ struct TansDec
 			u8 Sym = SortedSym[i];
 			u32 FromState = NextState[Sym]++;
 
-			Table[i].Sym = Sym;
-			Table[i].Bits = TableLog - FindMostSignificantSetBit32(FromState);
-			Table[i].NextState = (FromState << Table[i].Bits) - L;
+			Entry[i].Sym = Sym;
+			Entry[i].Bits = TableLog - FindMostSignificantSetBit32(FromState);
+			Entry[i].NextState = (FromState << Entry[i].Bits) - L;
 		}
 	}
+};
 
-	u8 decode(BitReaderReverseMSB& Reader)
+struct TansState
+{
+	u64 State;
+
+	void encode(BitWriter& Writer, const TansEncTable& Table, u8 Symbol)
+	{
+		const TansEncTable::entry& Entry = Table.Entries[Symbol];
+
+		u8 NumBits = (State + Entry.deltaNumBits) >> 16;
+		Writer.writeMaskMSB(State, NumBits);
+
+		State = Table.States[(State >> NumBits) + Entry.deltaState];
+	}
+
+	u8 decode(BitReaderReverseMSB& Reader, const TansDecTable& Table)
 	{
 		u64 CurrState = State;
 
-		const entry& Entry = Table[CurrState];
+		const TansDecTable::entry& Entry = Table.Entry[CurrState];
 		CurrState = Entry.NextState;
 
 		u64 ReadBits = Reader.peek(Entry.Bits);
