@@ -50,7 +50,7 @@ main(int argc, char** argv)
 		//TestPrecomputeAdaptiveOrder1Rans32(InputFile);
 
 		TestBasicTans(InputFile);
-		//TestInterleavedTans(InputFile);
+		TestInterleavedTans(InputFile);
 
 		printf("\n");
 	}

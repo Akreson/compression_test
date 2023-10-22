@@ -1177,7 +1177,6 @@ TestBasicTans(file_data& InputFile)
 		for (u64 i = InputFile.Size; i > 0; --i)
 		{
 			State.encode(Writer, EncTable, InputFile.Data[i - 1]);
-			//printf("%lu\n", State.State);
 		}
 
 		Writer.writeMaskMSB(State.State, EncTable.StateBits);
@@ -1316,14 +1315,9 @@ TestInterleavedTans(file_data& InputFile)
 		for (u64 i = 0; i < (InputFile.Size / 4); i++)
 		{
 			*DecOut++ = State2.decode(Reader, DecTable);
-			//u8 DecSym = *(DecOut - 1);
-			//Assert((*(DecOut - 1)) == InputFile.Data[i]);
 			*DecOut++ = State1.decode(Reader, DecTable);
-			//Assert((*(--DecOut)) == InputFile.Data[i + 1]);
 			*DecOut++ = State2.decode(Reader, DecTable);
-			//Assert((*(--DecOut)) == InputFile.Data[i + 2]);
 			*DecOut++ = State1.decode(Reader, DecTable);
-			//Assert((*(--DecOut)) == InputFile.Data[i + 3]);
 			Reader.refillTo(DecTable.StateBits * 4);
 		}
 

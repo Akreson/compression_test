@@ -22,7 +22,7 @@ struct TansEncTable
 		Entries = EntriesMem;
 		States = TableMem;
 
-		u16 NextState[256] = {};
+		u16 NextState[256];
 		for (u32 i = 0; i < AlphSymCount; i++)
 		{
 			NextState[i] = NormFreq[i];
