@@ -69,7 +69,7 @@ FindMostSignificantSetBit32(u32 Source)
 {
 	u32 Result;
 	u32 S = _BitScanReverse((unsigned long*)&Result, Source);
-	return Result;
+	return S ? Result : 0;
 }
 
 inline u32
