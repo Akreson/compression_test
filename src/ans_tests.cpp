@@ -1111,7 +1111,7 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 }
 
 void
-TansSortSymBitReverse(u8* SortedSym, u32 SortCount, u16* NormFreq, u32 AlphSymCount = 256)
+TansSortSymBitReverse(u8* SortedSym, u32 SortCount, const u16* NormFreq, u32 AlphSymCount = 256)
 {
 	u32 SymbolCounter = 0;
 	for (u32 Sym = 0; Sym < AlphSymCount; Sym++)
@@ -1128,6 +1128,32 @@ TansSortSymBitReverse(u8* SortedSym, u32 SortCount, u16* NormFreq, u32 AlphSymCo
 }
 
 void
+TansRadix8SortToBuffer(u8* SortedSym, u32 SortCount, const u16* NormFreq, u32 AlphSymCount = 256)
+{
+	const u32 RadixNumber = 255 << 8;
+	//const u32 RadixNumber = (256 << 8) - 1;
+	u32 RadixHisto[256] = {};
+	u32 RadixSum = TansRadixSort8(RadixHisto, RadixNumber, NormFreq, AlphSymCount);
+
+	for (u32 SymIndex = 0; SymIndex < AlphSymCount; SymIndex++)
+	{
+		u16 Freq = NormFreq[SymIndex];
+		if (!Freq) continue;
+
+		u32 Invp = RadixNumber / Freq;
+		u32 Rank = Invp;
+
+		for (u32 i = 0; i < Freq; ++i)
+		{
+			u32 Index = Rank >> 8;
+			Rank += Invp;
+
+			SortedSym[RadixHisto[Index]++] = SymIndex;
+		}
+	}
+}
+
+template <b32 IsRadixSort = true> void
 TestBasicTans(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
@@ -1145,8 +1171,6 @@ TestBasicTans(file_data& InputFile)
 	TansDecTable::entry* DecEntriesMem = new TansDecTable::entry[TANS_PROB_SCALE];
 	u16* TableMem = new u16[TANS_PROB_SCALE];
 	u8* SortedSym = new u8[TANS_PROB_SCALE];
-
-	BitWriter Writer;
 	
 	TansEncTable EncTable;
 	TansDecTable DecTable;
@@ -1158,23 +1182,37 @@ TestBasicTans(file_data& InputFile)
 	AccumTime EncodeInitAccum, EncAccum;
 	AccumTime DecodeInitAccum, DecAccum;
 
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		Timer.start();
+		if constexpr (IsRadixSort)
+		{
+			TansRadix8SortToBuffer(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+		}
+		else
+		{
+			TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+		}
+		Timer.end();
+		SymbolSortAccum.update(Timer);
+	}
+
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		Timer.start();
+
+		EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+		State.State = EncTable.L;
+
+		Timer.end();
+		EncodeInitAccum.update(Timer);
+	}
+
+	BitWriter Writer;
 	u64 TotalEncSize = 0;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
 		Writer.init(OutBuff, InputFile.Size);
-
-		Timer.start();
-		TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
-		Timer.end();
-
-		SymbolSortAccum.update(Timer);
-
-		Timer.start();
-		EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
-		State.State = EncTable.L;
-		Timer.end();
-
-		EncodeInitAccum.update(Timer);
 
 		Timer.start();
 		for (u64 i = InputFile.Size; i > 0; --i)
@@ -1184,12 +1222,17 @@ TestBasicTans(file_data& InputFile)
 
 		Writer.writeMaskMSB(State.State, EncTable.StateBits);
 		TotalEncSize = Writer.finishReverse();
-		
+
 		Timer.end();
 		EncAccum.update(Timer);
+	}
 
+	BitReaderReverseMSB Reader;
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
 		Timer.start();
-		BitReaderReverseMSB Reader(OutBuff, TotalEncSize);
+
+		Reader.init(OutBuff, TotalEncSize);
 		DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
 
 		Reader.refillTo(DecTable.StateBits);
@@ -1209,6 +1252,7 @@ TestBasicTans(file_data& InputFile)
 			*DecOut++ = Sym;
 			Reader.refillTo(DecTable.StateBits);
 		}
+
 		Timer.end();
 		DecAccum.update(Timer);
 	}
@@ -1226,7 +1270,7 @@ TestBasicTans(file_data& InputFile)
 	PrintCompressionSize(InputFile.Size, TotalEncSize);
 }
 
-void
+template<b32 IsRadixInit = true> void
 TestInterleavedTans(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
@@ -1261,21 +1305,38 @@ TestInterleavedTans(file_data& InputFile)
 	u64 TotalEncSize = 0;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		Writer.init(OutBuff, InputFile.Size);
+		if constexpr (IsRadixInit)
+		{
+			Timer.start();
 
-		Timer.start();
-		TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
-		Timer.end();
+			EncTable.initRadix(EncEntriesMem, TANS_PROB_BITS, TableMem, NormFreq);
+			State1.State = EncTable.L;
+			State2.State = EncTable.L;
 
-		SymbolSortAccum.update(Timer);
+			Timer.end();
+		}
+		else 
+		{
+			Timer.start();
+			TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+			Timer.end();
 
-		Timer.start();
-		EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
-		State1.State = EncTable.L;
-		State2.State = EncTable.L;
-		Timer.end();
+			SymbolSortAccum.update(Timer);
 
+			Timer.start();
+
+			EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+			State1.State = EncTable.L;
+			State2.State = EncTable.L;
+
+			Timer.end();
+		}
 		EncodeInitAccum.update(Timer);
+	}
+
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		Writer.init(OutBuff, InputFile.Size);
 
 		Timer.start();
 		u64 i = InputFile.Size;
@@ -1299,16 +1360,28 @@ TestInterleavedTans(file_data& InputFile)
 
 		Timer.end();
 		EncAccum.update(Timer);
+	}
+
+	BitReaderReverseMSB Reader;
+	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
+	{
+		Reader.init(OutBuff, TotalEncSize);
 
 		Timer.start();
-		BitReaderReverseMSB Reader(OutBuff, TotalEncSize);
-		DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+		if constexpr (IsRadixInit)
+		{
+			DecTable.initRadix(DecEntriesMem, TANS_PROB_BITS, NormFreq);
+		}
+		else
+		{
+			DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+		}
 
 		Reader.refillTo(DecTable.StateBits);
 		State2.State = Reader.getBits(DecTable.StateBits);
 		State1.State = Reader.getBits(DecTable.StateBits);
-
 		Timer.end();
+
 		DecodeInitAccum.update(Timer);
 
 		u8* DecOut = DecBuff;

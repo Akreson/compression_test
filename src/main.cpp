@@ -39,6 +39,7 @@ main(int argc, char** argv)
 		//TestPPMModel(InputFile);
 	
 		//TestBasicRans8(InputFile);
+		//RansTest(InputFile);
 		//TestBasicRans32(InputFile);
 		//TestFastEncodeRans8(InputFile);
 		//TestFastEncodeRans32(InputFile);
@@ -49,8 +50,10 @@ main(int argc, char** argv)
 		//TestNormalizationRans32(InputFile);
 		//TestPrecomputeAdaptiveOrder1Rans32(InputFile);
 
-		TestBasicTans(InputFile);
+		//TestBasicTans(InputFile);
+		//TestBasicTans<false>(InputFile);
 		TestInterleavedTans(InputFile);
+		TestInterleavedTans<false>(InputFile);
 
 		printf("\n");
 	}
