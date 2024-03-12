@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "ans/rans_common.h"
 #include "ans/rans8.cpp"
 #include "ans/rans16.cpp"
@@ -18,8 +20,8 @@ TestBasicRans8(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = InputFile.Size;
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -46,7 +48,7 @@ TestBasicRans8(file_data& InputFile)
 		Rans8Enc Encoder;
 		Encoder.init();
 
-		u8* Out = OutBuff + BuffSize;
+		u8* Out = OutBuff.data() + BuffSize;
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
@@ -63,7 +65,7 @@ TestBasicRans8(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - DecodeBegin;
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -92,9 +94,6 @@ TestBasicRans8(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -104,8 +103,8 @@ TestBasicRans32(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -131,7 +130,7 @@ TestBasicRans32(file_data& InputFile)
 		Rans32Enc Encoder;
 		Encoder.init();
 
-		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+		u32* Out = reinterpret_cast<u32*>(OutBuff.data() + BuffSize);
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
@@ -148,7 +147,7 @@ TestBasicRans32(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -176,9 +175,6 @@ TestBasicRans32(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -188,8 +184,8 @@ TestFastEncodeRans8(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = InputFile.Size;
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -226,7 +222,7 @@ TestFastEncodeRans8(file_data& InputFile)
 		Rans8Enc Encoder;
 		Encoder.init();
 
-		u8* Out = OutBuff + BuffSize;
+		u8* Out = OutBuff.data() + BuffSize;
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
@@ -243,7 +239,7 @@ TestFastEncodeRans8(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - DecodeBegin;
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - DecodeBegin;
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -272,9 +268,6 @@ TestFastEncodeRans8(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -284,8 +277,8 @@ TestFastEncodeRans32(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = InputFile.Size;
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -320,7 +313,7 @@ TestFastEncodeRans32(file_data& InputFile)
 		Rans32Enc Encoder;
 		Encoder.init();
 
-		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+		u32* Out = reinterpret_cast<u32*>(OutBuff.data() + BuffSize);
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
@@ -337,7 +330,7 @@ TestFastEncodeRans32(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -367,9 +360,6 @@ TestFastEncodeRans32(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -379,8 +369,8 @@ TestTableDecodeRans16(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -404,7 +394,7 @@ TestTableDecodeRans16(file_data& InputFile)
 		Rans16Enc Encoder;
 		Encoder.init();
 
-		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
+		u16* Out = reinterpret_cast<u16*>(OutBuff.data() + BuffSize);
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
@@ -421,7 +411,7 @@ TestTableDecodeRans16(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -450,9 +440,6 @@ TestTableDecodeRans16(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -462,8 +449,8 @@ TestTableInterleavedRans16(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -484,7 +471,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 	{
 		Timer.start();
 
-		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
+		u16* Out = reinterpret_cast<u16*>(OutBuff.data() + BuffSize);
 
 		Rans16Enc Enc0, Enc1;
 		Enc0.init();
@@ -515,7 +502,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -556,9 +543,6 @@ TestTableInterleavedRans16(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -569,8 +553,8 @@ TestTableInterleavedRans32(file_data& InputFile)
 	Timer Timer;
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -591,7 +575,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 	{
 		Timer.start();
 
-		u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+		u32* Out = reinterpret_cast<u32*>(OutBuff.data() + BuffSize);
 
 		Rans32Enc Enc0, Enc1;
 		Enc0.init();
@@ -622,7 +606,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -663,9 +647,6 @@ TestTableInterleavedRans32(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 #define Check4SymDecBuff(Buff, i) ((u32)(Buff[(i)] | (Buff[(i) + 1] << 8) | (Buff[(i) + 2] << 16) | (Buff[(i) + 3] << 24)))
@@ -679,8 +660,8 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 	// align buffer size
 	u64 BuffSize = AlignSizeForward(InputFile.Size, 16);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
@@ -704,7 +685,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		Rans16Enc Enc[8];
 		for (u32 i = 0; i < 8; i++) Enc[i].init();
 
-		u16* Out = reinterpret_cast<u16*>(OutBuff + BuffSize);
+		u16* Out = reinterpret_cast<u16*>(OutBuff.data() + BuffSize);
 		for (u64 i = InputFile.Size; i > 0; i--)
 		{
 			u8 Symbol = InputFile.Data[i - 1];
@@ -723,7 +704,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
 	Accum.reset();
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	printf(" rANS decode\n");
@@ -737,6 +718,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 		Dec0.init(&In);
 		Dec1.init(&In);
 
+		u8* DecBuffPtr = DecBuff.data();
 		for (u64 i = 0; i < (InputFile.Size & ~7); i += 8)
 		{
 			u32 Symbol03 = Dec0.decodeSym(Tab, RANS_PROB_SCALE, RANS_PROB_BIT);
@@ -744,8 +726,8 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 			Assert(Symbol03 == Check4SymDecBuff(InputFile.Data, i));
 			Assert(Symbol47 == Check4SymDecBuff(InputFile.Data, i + 4));
-			*reinterpret_cast<u32*>(DecBuff + i) = Symbol03;
-			*reinterpret_cast<u32*>(DecBuff + i + 4) = Symbol47;
+			*reinterpret_cast<u32*>(DecBuffPtr + i) = Symbol03;
+			*reinterpret_cast<u32*>(DecBuffPtr + i + 4) = Symbol47;
 
 			Dec0.decodeRenorm(&In);
 			Dec1.decodeRenorm(&In);
@@ -765,9 +747,6 @@ TestSIMDDecodeRans16(file_data& InputFile)
 	}
 
 	PrintAvgPerSymbolPerfStats(Accum, RUNS_COUNT, InputFile.Size);
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 static inline u32*
@@ -790,7 +769,8 @@ static inline void
 DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq, u16* CumFreq, u32 ProbBit)
 {
 	u32 ProbScale = 1 << ProbBit;
-	u8* Cum2Sym = new u8[ProbScale];
+	std::vector<u8> Cum2Sym(ProbScale);
+
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
 	{
 		for (u32 j = CumFreq[SymbolIndex]; j < CumFreq[SymbolIndex + 1]; j++)
@@ -814,8 +794,6 @@ DecodeRans32(u8* RefData, u32 RefSize, u8* DecBuff, u32* DecodeBegin, u16* Freq,
 		DecBuff[ByteIndex++] = Symbol;
 		Decoder.decodeAdvance(&In, CumFreq[Symbol], Freq[Symbol], ProbBit);
 	}
-
-	delete[] Cum2Sym;
 }
 
 void
@@ -824,9 +802,10 @@ TestNormalizationRans32(file_data& InputFile)
 	PRINT_TEST_FUNC();
 
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
-	u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
+
+	u32* Out = reinterpret_cast<u32*>(OutBuff.data() + BuffSize);
 
 	u32 RawFreq[256] = {};
 	u32 CumFreq32[257] = {};
@@ -857,8 +836,8 @@ TestNormalizationRans32(file_data& InputFile)
 
 		u32* DecodeBegin = EncodeRans32(Out, InputFile.Data, InputFile.Size, NormFreq, CumFreq, ProbBit);
 
-		u64 CompressedSizeNorm = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff, DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
+		u64 CompressedSizeNorm = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff.data(), DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
 
 		printf("(norm) ");
 		PrintCompressionSize(InputFile.Size, CompressedSizeNorm);
@@ -872,8 +851,8 @@ TestNormalizationRans32(file_data& InputFile)
 
 		DecodeBegin = EncodeRans32(Out, InputFile.Data, InputFile.Size, NormFreq, CumFreq, ProbBit);
 
-		u64 CompressedSizeFast = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff, DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
+		u64 CompressedSizeFast = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff.data(), DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
 
 		printf("(fast) ");
 		PrintCompressionSize(InputFile.Size, CompressedSizeFast);
@@ -887,17 +866,14 @@ TestNormalizationRans32(file_data& InputFile)
 
 		DecodeBegin = EncodeRans32(Out, InputFile.Data, InputFile.Size, NormFreq, CumFreq, ProbBit);
 
-		u64 CompressedSizeOpt = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
-		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff, DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
+		u64 CompressedSizeOpt = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+		DecodeRans32(InputFile.Data, InputFile.Size, DecBuff.data(), DecodeBegin, NormFreq, CumFreq, ProbBit); // decode ok?
 
 		printf("(optm) ");
 		PrintCompressionSize(InputFile.Size, CompressedSizeOpt);
 
 		printf("\n");
 	}
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 using freq_val_o1 = array2d<u32, 256, 256>;
@@ -906,18 +882,15 @@ using cdf_val_o1 = array2d<u16, 256, 257>;
 void
 PrecomputCDFFromEntireData(u8* Data, u64 Size, cdf_val_o1* MixCDF, u32 TargetTotalLog, u32 SymCount)
 {
-	u16* TempNormFreq = new u16[SymCount];
-	u32* Total = new u32[SymCount];
+	std::vector<u16> TempNormFreq(SymCount, 0);
+	std::vector<u32> Total(SymCount, SymCount);
 	freq_val_o1* Order1Freq = new freq_val_o1;
-
-	ZeroSize(TempNormFreq, sizeof(u16) * SymCount);
 
 	for (u32 i = 0; i < freq_val_o1::d0; i++)
 	{
 		u32* Arr = &Order1Freq->E[i][0];
 		MemSet<u32>(Arr, SymCount, 1);
 	}
-	MemSet<u32>(Total, SymCount, SymCount);
 
 	u32 Inc = 16;
 	for (u32 i = 1; i < Size; i++)
@@ -928,13 +901,11 @@ PrecomputCDFFromEntireData(u8* Data, u64 Size, cdf_val_o1* MixCDF, u32 TargetTot
 
 	for (u32 i = 0; i < SymCount; i++)
 	{
-		FastNormalize(Order1Freq->E[i], TempNormFreq, Total[i], SymCount, TargetTotalLog);
-		CalcCumFreq(TempNormFreq, MixCDF->E[i], SymCount);
-		ZeroSize(TempNormFreq, sizeof(u16) * SymCount);
+		FastNormalize(Order1Freq->E[i], TempNormFreq.data(), Total[i], SymCount, TargetTotalLog);
+		CalcCumFreq(TempNormFreq.data(), MixCDF->E[i], SymCount);
+		ZeroSize(TempNormFreq.data(), sizeof(u16) * SymCount);
 	}
 
-	delete[] TempNormFreq;
-	delete[] Total;
 	delete Order1Freq;
 }
 
@@ -990,11 +961,11 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 	Assert(ProbBit <= 15); // for ease u16 -> s16 interpretation
 
 	// init data
-	u16* CDF = new u16[SymCount + 1];
-	u16* InitCDF = new u16[SymCount + 1];
+	std::vector<u16> CDF(SymCount + 1);
+	std::vector<u16> InitCDF(SymCount + 1);
 	cdf_val_o1* MixCDF = new cdf_val_o1;
 
-	InitEqDistCDF(InitCDF, SymCount, ProbScale);
+	InitEqDistCDF(InitCDF.data(), SymCount, ProbScale);
 	PrecomputCDFFromEntireData(InputFile.Data, InputFile.Size, MixCDF, ProbBit, SymCount);
 
 	// collect adapted rans sym
@@ -1007,7 +978,7 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 	std::vector<rans_sym> BuffRans;
 	for (;;)
 	{
-		MemCopy(CDFSize, CDF, InitCDF);
+		CDF = InitCDF;
 
 		for (u64 i = Start; i < End; i++)
 		{
@@ -1020,8 +991,8 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 
 			BuffRans.push_back(R);
 
-			AdaptFromMixCDF(CDF, MixCDF->E[Sym], AdaptRate, SymCount);
-			Assert(CheckCDF(CDF, SymCount, ProbScale));
+			AdaptFromMixCDF(CDF.data(), MixCDF->E[Sym], AdaptRate, SymCount);
+			Assert(CheckCDF(CDF.data(), SymCount, ProbScale));
 		}
 
 		if (End == InputFile.Size) break;
@@ -1033,9 +1004,9 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 
 	//encoding
 	u64 BuffSize = AlignSizeForward(InputFile.Size);
-	u8* OutBuff = new u8[BuffSize];
-	u8* DecBuff = new u8[BuffSize];
-	u32* Out = reinterpret_cast<u32*>(OutBuff + BuffSize);
+	std::vector<u8> OutBuff(BuffSize);
+	std::vector<u8> DecBuff(BuffSize);
+	u32* Out = reinterpret_cast<u32*>(OutBuff.data() + BuffSize);
 
 	u32* DecodeBegin = nullptr;
 	Rans32Enc Encoder;
@@ -1059,12 +1030,11 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 	}
 	DecodeBegin = Out;
 
-	u64 CompressedSize = (OutBuff + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
+	u64 CompressedSize = (OutBuff.data() + BuffSize) - reinterpret_cast<u8*>(DecodeBegin);
 	PrintCompressionSize(InputFile.Size, CompressedSize);
 
 	//decoding
-	MemCopy(CDFSize, CDF, InitCDF);
-
+	CDF = InitCDF;
 	u32* In = DecodeBegin;
 	Rans32Dec Decoder;
 	Decoder.init(&In);
@@ -1092,8 +1062,8 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 		u32 Freq = CDF[Sym + 1] - CumStart;
 		Decoder.decodeAdvance(&In, CumStart, Freq, ProbBit);
 
-		AdaptFromMixCDF(CDF, MixCDF->E[Sym], AdaptRate, SymCount);
-		Assert(CheckCDF(CDF, SymCount, ProbScale));
+		AdaptFromMixCDF(CDF.data(), MixCDF->E[Sym], AdaptRate, SymCount);
+		Assert(CheckCDF(CDF.data(), SymCount, ProbScale));
 
 		if ((ByteIndex & (SplitSize - 1)) == 0)
 		{
@@ -1102,12 +1072,7 @@ TestPrecomputeAdaptiveOrder1Rans32(file_data& InputFile)
 		}
 	}
 
-	delete[] CDF;
-	delete[] InitCDF;
 	delete MixCDF;
-
-	delete[] OutBuff;
-	delete[] DecBuff;
 }
 
 void
@@ -1158,8 +1123,8 @@ TestBasicTans(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	u8* OutBuff = new u8[InputFile.Size];
-	u8* DecBuff = new u8[InputFile.Size];
+	std::vector<u8> OutBuff(InputFile.Size);
+	std::vector<u8> DecBuff(InputFile.Size);
 
 	u32 Freq[256] = {};
 	u16 NormFreq[256] = {};
@@ -1167,10 +1132,11 @@ TestBasicTans(file_data& InputFile)
 	CountByte(Freq, InputFile.Data, InputFile.Size);
 	OptimalNormalize(Freq, NormFreq, InputFile.Size, 256, TANS_PROB_SCALE);
 
-	TansEncTable::entry* EncEntriesMem = new TansEncTable::entry[256];
-	TansDecTable::entry* DecEntriesMem = new TansDecTable::entry[TANS_PROB_SCALE];
-	u16* TableMem = new u16[TANS_PROB_SCALE];
-	u8* SortedSym = new u8[TANS_PROB_SCALE];
+	std::vector<TansEncTable::entry> EncEntriesMem(256);
+	std::vector<TansDecTable::entry> DecEntriesMem(TANS_PROB_SCALE);
+
+	std::vector<u16> TableMem(TANS_PROB_SCALE);
+	std::vector<u8> SortedSym(TANS_PROB_SCALE);
 	
 	TansEncTable EncTable;
 	TansDecTable DecTable;
@@ -1187,11 +1153,11 @@ TestBasicTans(file_data& InputFile)
 		Timer.start();
 		if constexpr (IsRadixSort)
 		{
-			TansRadix8SortToBuffer(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+			TansRadix8SortToBuffer(SortedSym.data(), TANS_PROB_SCALE, NormFreq, 256);
 		}
 		else
 		{
-			TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+			TansSortSymBitReverse(SortedSym.data(), TANS_PROB_SCALE, NormFreq, 256);
 		}
 		Timer.end();
 		SymbolSortAccum.update(Timer);
@@ -1201,7 +1167,7 @@ TestBasicTans(file_data& InputFile)
 	{
 		Timer.start();
 
-		EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+		EncTable.init(EncEntriesMem.data(), TANS_PROB_BITS, TableMem.data(), SortedSym.data(), NormFreq);
 		State.State = EncTable.L;
 
 		Timer.end();
@@ -1212,7 +1178,7 @@ TestBasicTans(file_data& InputFile)
 	u64 TotalEncSize = 0;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		Writer.init(OutBuff, InputFile.Size);
+		Writer.init(OutBuff.data(), InputFile.Size);
 
 		Timer.start();
 		for (u64 i = InputFile.Size; i > 0; --i)
@@ -1232,8 +1198,8 @@ TestBasicTans(file_data& InputFile)
 	{
 		Timer.start();
 
-		Reader.init(OutBuff, TotalEncSize);
-		DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+		Reader.init(OutBuff.data(), TotalEncSize);
+		DecTable.init(DecEntriesMem.data(), TANS_PROB_BITS, SortedSym.data(), NormFreq);
 
 		Reader.refillTo(DecTable.StateBits);
 		State.State = Reader.getBits(DecTable.StateBits);
@@ -1241,7 +1207,7 @@ TestBasicTans(file_data& InputFile)
 		Timer.end();
 		DecodeInitAccum.update(Timer);
 
-		u8* DecOut = DecBuff;
+		u8* DecOut = DecBuff.data();
 		Timer.start();
 
 		Reader.refillTo(DecTable.StateBits);
@@ -1275,8 +1241,8 @@ TestInterleavedTans(file_data& InputFile)
 {
 	PRINT_TEST_FUNC();
 
-	u8* OutBuff = new u8[InputFile.Size];
-	u8* DecBuff = new u8[InputFile.Size];
+	std::vector<u8> OutBuff(InputFile.Size);
+	std::vector<u8> DecBuff(InputFile.Size);
 
 	u32 Freq[256] = {};
 	u16 NormFreq[256] = {};
@@ -1284,10 +1250,10 @@ TestInterleavedTans(file_data& InputFile)
 	CountByte(Freq, InputFile.Data, InputFile.Size);
 	OptimalNormalize(Freq, NormFreq, InputFile.Size, 256, TANS_PROB_SCALE);
 
-	TansEncTable::entry* EncEntriesMem = new TansEncTable::entry[256];
-	TansDecTable::entry* DecEntriesMem = new TansDecTable::entry[TANS_PROB_SCALE];
-	u16* TableMem = new u16[TANS_PROB_SCALE];
-	u8* SortedSym = new u8[TANS_PROB_SCALE];
+	std::vector<TansEncTable::entry> EncEntriesMem(256);
+	std::vector<TansDecTable::entry> DecEntriesMem(TANS_PROB_SCALE);
+	std::vector<u16> TableMem(TANS_PROB_SCALE);
+	std::vector<u8> SortedSym(TANS_PROB_SCALE);
 
 	BitWriter Writer;
 
@@ -1309,7 +1275,7 @@ TestInterleavedTans(file_data& InputFile)
 		{
 			Timer.start();
 
-			EncTable.initRadix(EncEntriesMem, TANS_PROB_BITS, TableMem, NormFreq);
+			EncTable.initRadix(EncEntriesMem.data(), TANS_PROB_BITS, TableMem.data(), NormFreq);
 			State1.State = EncTable.L;
 			State2.State = EncTable.L;
 
@@ -1318,14 +1284,14 @@ TestInterleavedTans(file_data& InputFile)
 		else 
 		{
 			Timer.start();
-			TansSortSymBitReverse(SortedSym, TANS_PROB_SCALE, NormFreq, 256);
+			TansSortSymBitReverse(SortedSym.data(), TANS_PROB_SCALE, NormFreq, 256);
 			Timer.end();
 
 			SymbolSortAccum.update(Timer);
 
 			Timer.start();
 
-			EncTable.init(EncEntriesMem, TANS_PROB_BITS, TableMem, SortedSym, NormFreq);
+			EncTable.init(EncEntriesMem.data(), TANS_PROB_BITS, TableMem.data(), SortedSym.data(), NormFreq);
 			State1.State = EncTable.L;
 			State2.State = EncTable.L;
 
@@ -1336,7 +1302,7 @@ TestInterleavedTans(file_data& InputFile)
 
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		Writer.init(OutBuff, InputFile.Size);
+		Writer.init(OutBuff.data(), InputFile.Size);
 
 		Timer.start();
 		u64 i = InputFile.Size;
@@ -1365,16 +1331,16 @@ TestInterleavedTans(file_data& InputFile)
 	BitReaderReverseMSB Reader;
 	for (u32 Run = 0; Run < RUNS_COUNT; Run++)
 	{
-		Reader.init(OutBuff, TotalEncSize);
+		Reader.init(OutBuff.data(), TotalEncSize);
 
 		Timer.start();
 		if constexpr (IsRadixInit)
 		{
-			DecTable.initRadix(DecEntriesMem, TANS_PROB_BITS, NormFreq);
+			DecTable.initRadix(DecEntriesMem.data(), TANS_PROB_BITS, NormFreq);
 		}
 		else
 		{
-			DecTable.init(DecEntriesMem, TANS_PROB_BITS, SortedSym, NormFreq);
+			DecTable.init(DecEntriesMem.data(), TANS_PROB_BITS, SortedSym, NormFreq);
 		}
 
 		Reader.refillTo(DecTable.StateBits);
@@ -1384,7 +1350,7 @@ TestInterleavedTans(file_data& InputFile)
 
 		DecodeInitAccum.update(Timer);
 
-		u8* DecOut = DecBuff;
+		u8* DecOut = DecBuff.data();
 		Timer.start();
 		Reader.refillTo(DecTable.StateBits * 4);
 
