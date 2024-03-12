@@ -33,7 +33,7 @@ static constexpr u64 MaxUInt64 = std::numeric_limits<u64>::max();
 
 static constexpr f64 MaxF64 = std::numeric_limits<f64>::max();
 
-static constexpr u32 RUNS_COUNT = 5;
+static constexpr u32 RUNS_COUNT = 10;
 
 #ifdef _DEBUG
 	//#define Assert(Expression) assert(Expression)

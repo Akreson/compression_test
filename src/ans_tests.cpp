@@ -5,10 +5,10 @@
 #include "ans/tans.cpp"
 #include "ans/static_basic_stats.cpp"
 
-static constexpr u32 RANS_PROB_BIT = 11;
+static constexpr u32 RANS_PROB_BIT = 12;
 static constexpr u32 RANS_PROB_SCALE = 1 << RANS_PROB_BIT;
 
-static constexpr u32 TANS_PROB_BITS = 11;
+static constexpr u32 TANS_PROB_BITS = 12;
 static constexpr u32 TANS_PROB_SCALE = 1 << TANS_PROB_BITS;
 
 void
@@ -23,7 +23,8 @@ TestBasicRans8(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	//Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
@@ -108,7 +109,7 @@ TestBasicRans32(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
@@ -192,7 +193,9 @@ TestFastEncodeRans8(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
+	//Stats.fastNormalize(InputFile.Size, RANS_PROB_BIT);
 	Stats.normalize(RANS_PROB_SCALE);
+	//Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
@@ -286,7 +289,7 @@ TestFastEncodeRans32(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	u8 Cum2Sym[RANS_PROB_SCALE];
 	for (u32 SymbolIndex = 0; SymbolIndex < 256; SymbolIndex++)
@@ -381,7 +384,7 @@ TestTableDecodeRans16(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	rans_sym_table<RANS_PROB_SCALE> Tab;
 
@@ -464,7 +467,7 @@ TestTableInterleavedRans16(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	rans_sym_table<RANS_PROB_SCALE> Tab;
 
@@ -571,7 +574,7 @@ TestTableInterleavedRans32(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	rans_sym_table<RANS_PROB_SCALE> Tab;
 
@@ -681,7 +684,7 @@ TestSIMDDecodeRans16(file_data& InputFile)
 
 	SymbolStats Stats;
 	Stats.countSymbol(InputFile.Data, InputFile.Size);
-	Stats.normalize(RANS_PROB_SCALE);
+	Stats.optimalNormalize(RANS_PROB_SCALE);
 
 	rans_sym_table<RANS_PROB_SCALE> Tab;
 
